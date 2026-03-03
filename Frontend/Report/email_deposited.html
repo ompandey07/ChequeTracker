@@ -1,0 +1,983 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Email Deposited Cheques — Admin Panel</title>
+<style>
+/* ═══════════════ RESET ═══════════════ */
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+html,body{height:100%;font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#f0f1f5;color:#1e1e2f;}
+
+/* ═══════════════ SIDEBAR ═══════════════ */
+.sidebar{
+    position:fixed;top:0;left:0;width:240px;height:100vh;
+    background:#1e1e2f;display:flex;flex-direction:column;z-index:100;
+}
+.sidebar-brand{
+    height:60px;display:flex;align-items:center;padding:0 20px;
+    border-bottom:1px solid rgba(255,255,255,.08);
+}
+.sidebar-brand .brand-icon{
+    width:32px;height:32px;background:#fff;color:#1e1e2f;
+    display:flex;align-items:center;justify-content:center;
+    font-weight:700;font-size:14px;margin-right:12px;
+}
+.sidebar-brand span{color:#fff;font-size:15px;font-weight:600;}
+.sidebar-nav{flex:1;padding:12px 0;overflow-y:auto;}
+.nav-item{
+    display:flex;align-items:center;gap:12px;padding:10px 20px;
+    color:rgba(255,255,255,.55);text-decoration:none;font-size:13px;
+    font-weight:500;border-left:3px solid transparent;
+    transition:all .15s ease;
+}
+.nav-item:hover{color:rgba(255,255,255,.85);background:rgba(255,255,255,.04);}
+.nav-item.active{color:#fff;background:rgba(255,255,255,.08);border-left-color:#fff;}
+.nav-item svg{width:18px;height:18px;flex-shrink:0;}
+.nav-section{
+    padding:8px 20px 6px;color:rgba(255,255,255,.35);
+    font-size:10px;text-transform:uppercase;letter-spacing:1px;margin-top:8px;
+}
+.sidebar-footer{padding:16px 20px;border-top:1px solid rgba(255,255,255,.08);}
+.user-badge{display:flex;align-items:center;gap:10px;}
+.user-badge .avatar{
+    width:32px;height:32px;background:rgba(255,255,255,.15);color:#fff;
+    display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;
+}
+.user-badge .uname{color:rgba(255,255,255,.7);font-size:12px;}
+
+/* ═══════════════ MAIN CONTENT ═══════════════ */
+.main-content{margin-left:240px;min-height:100vh;}
+
+.content-header{
+    height:60px;background:#fff;border-bottom:1px solid #e5e7eb;
+    display:flex;align-items:center;justify-content:space-between;padding:0 24px;
+}
+.content-header h1{font-size:16px;font-weight:600;color:#1e1e2f;}
+.header-actions{display:flex;align-items:center;gap:12px;}
+
+/* ═══════════════ BUTTONS ═══════════════ */
+.btn-send-email{
+    height:38px;padding:0 20px;background:#6366f1;color:#fff;
+    border:none;font-size:13px;font-weight:600;cursor:pointer;
+    display:flex;align-items:center;gap:8px;transition:all .15s ease;
+}
+.btn-send-email:hover{background:#4f46e5;}
+.btn-send-email:disabled{opacity:.5;cursor:not-allowed;}
+.btn-send-email svg{width:16px;height:16px;}
+
+/* ═══════════════ PAGE BODY ═══════════════ */
+.page-body{padding:24px;}
+
+/* ═══════════════ SELECTION BAR ═══════════════ */
+.selection-bar{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:14px 20px;background:#fff;border:1px solid #e5e7eb;
+    margin-bottom:20px;
+}
+.selection-info{display:flex;align-items:center;gap:16px;}
+.selection-count{
+    font-size:14px;font-weight:600;color:#1e1e2f;
+}
+.selection-count span{color:#6366f1;}
+.selection-amount{font-size:13px;color:#16a34a;font-weight:500;}
+
+.selection-actions{display:flex;align-items:center;gap:12px;}
+.btn-select-all{
+    padding:8px 16px;font-size:12px;font-weight:600;
+    background:#f3f4f6;color:#374151;border:1px solid #d1d5db;
+    cursor:pointer;transition:all .15s ease;
+}
+.btn-select-all:hover{background:#e5e7eb;}
+.btn-select-all.active{background:#1e1e2f;color:#fff;border-color:#1e1e2f;}
+.btn-clear-selection{
+    padding:8px 16px;font-size:12px;font-weight:600;
+    background:#fff;color:#dc2626;border:1px solid #dc2626;
+    cursor:pointer;transition:all .15s ease;
+}
+.btn-clear-selection:hover{background:#dc2626;color:#fff;}
+
+/* ═══════════════ DATA TABLE ═══════════════ */
+.data-card{background:#fff;border:1px solid #e5e7eb;}
+.data-card-header{
+    padding:14px 20px;border-bottom:1px solid #e5e7eb;
+    display:flex;align-items:center;justify-content:space-between;
+}
+.data-card-header h3{font-size:14px;font-weight:600;color:#1e1e2f;}
+
+.table-wrapper{overflow-x:auto;}
+.data-table{width:100%;border-collapse:collapse;font-size:13px;}
+.data-table th,.data-table td{
+    border:1px solid #d1d5db;padding:10px 12px;text-align:left;
+}
+.data-table thead th{
+    background:#f3f4f6;font-weight:600;font-size:11px;
+    text-transform:uppercase;letter-spacing:.4px;color:#374151;
+    white-space:nowrap;position:sticky;top:0;
+}
+.data-table tbody tr{transition:background .1s ease;}
+.data-table tbody tr:hover{background:#f8fafc;}
+.data-table tbody tr.selected{background:#eef2ff;}
+.data-table td.col-checkbox{width:50px;text-align:center;}
+.data-table td.col-sn{width:50px;text-align:center;color:#6b7280;}
+.data-table td.col-amount{text-align:right;font-variant-numeric:tabular-nums;font-weight:500;}
+.data-table td.col-date{white-space:nowrap;text-align:center;}
+.empty-cell{text-align:center;padding:48px 12px;color:#9ca3af;font-size:14px;}
+
+/* Checkbox Styling */
+.checkbox-wrapper{display:flex;align-items:center;justify-content:center;}
+.custom-checkbox{
+    width:18px;height:18px;border:2px solid #d1d5db;
+    background:#fff;cursor:pointer;position:relative;
+    transition:all .15s ease;display:flex;align-items:center;justify-content:center;
+}
+.custom-checkbox:hover{border-color:#6366f1;}
+.custom-checkbox.checked{background:#6366f1;border-color:#6366f1;}
+.custom-checkbox.checked::after{
+    content:'';width:5px;height:9px;
+    border:solid #fff;border-width:0 2px 2px 0;
+    transform:rotate(45deg);margin-top:-2px;
+}
+.custom-checkbox input{display:none;}
+
+/* Header Checkbox */
+.header-checkbox{
+    width:18px;height:18px;border:2px solid #6b7280;
+    background:#fff;cursor:pointer;position:relative;
+    transition:all .15s ease;display:flex;align-items:center;justify-content:center;
+}
+.header-checkbox:hover{border-color:#1e1e2f;}
+.header-checkbox.checked{background:#1e1e2f;border-color:#1e1e2f;}
+.header-checkbox.partial{background:#1e1e2f;border-color:#1e1e2f;}
+.header-checkbox.checked::after{
+    content:'';width:5px;height:9px;
+    border:solid #fff;border-width:0 2px 2px 0;
+    transform:rotate(45deg);margin-top:-2px;
+}
+.header-checkbox.partial::after{
+    content:'';width:10px;height:2px;background:#fff;
+}
+
+/* Status Badge */
+.badge{display:inline-block;padding:3px 10px;font-size:10px;font-weight:600;text-transform:uppercase;}
+.badge-deposited{background:#dcfce7;color:#16a34a;}
+
+/* ═══════════════ TABLE FOOTER ═══════════════ */
+.table-footer{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:14px 20px;border-top:1px solid #e5e7eb;background:#fafafa;
+}
+.table-info{font-size:12px;color:#6b7280;}
+.pagination{display:flex;align-items:center;gap:2px;}
+.page-link{
+    padding:6px 12px;font-size:12px;border:1px solid #d1d5db;
+    text-decoration:none;color:#374151;background:#fff;
+    cursor:pointer;transition:all .15s ease;
+}
+.page-link:hover{background:#f3f4f6;}
+.page-link.current{background:#1e1e2f;color:#fff;border-color:#1e1e2f;}
+.page-link.disabled{color:#c0c0c0;cursor:default;pointer-events:none;}
+
+/* ═══════════════ EMAIL MODAL ═══════════════ */
+.modal-backdrop{
+    display:none;position:fixed;top:0;left:0;width:100%;height:100%;
+    background:rgba(0,0,0,.5);z-index:500;
+    align-items:center;justify-content:center;
+}
+.modal-backdrop.active{display:flex;}
+
+.modal-box{
+    background:#fff;border:1px solid #d1d5db;
+    width:700px;max-width:95%;max-height:90vh;
+    display:flex;flex-direction:column;
+    animation:modalIn .2s ease;
+}
+@keyframes modalIn{
+    from{opacity:0;transform:scale(.95);}
+    to{opacity:1;transform:scale(1);}
+}
+
+.modal-header{
+    padding:16px 20px;border-bottom:1px solid #e5e7eb;
+    display:flex;align-items:center;justify-content:space-between;
+    flex-shrink:0;background:#6366f1;
+}
+.modal-header h3{font-size:15px;font-weight:600;color:#fff;display:flex;align-items:center;gap:10px;}
+.modal-header h3 svg{width:20px;height:20px;}
+.btn-close-modal{
+    width:32px;height:32px;background:rgba(255,255,255,.1);border:none;
+    cursor:pointer;display:flex;align-items:center;justify-content:center;
+    font-size:20px;color:#fff;transition:all .15s ease;
+}
+.btn-close-modal:hover{background:rgba(255,255,255,.2);}
+
+.modal-body{padding:20px;overflow-y:auto;flex:1;}
+
+/* Email Form */
+.email-form-group{margin-bottom:20px;}
+.email-form-group label{
+    display:block;font-size:12px;font-weight:600;
+    color:#374151;margin-bottom:8px;
+}
+.email-form-group label span{color:#dc2626;}
+
+/* Custom Email Dropdown */
+.email-dropdown{position:relative;}
+.email-input-wrapper{position:relative;}
+.email-input{
+    width:100%;height:42px;padding:0 40px 0 14px;font-size:13px;
+    border:1px solid #d1d5db;background:#fff;outline:none;
+    transition:border-color .15s ease;
+}
+.email-input:focus{border-color:#6366f1;}
+.email-dropdown-btn{
+    position:absolute;right:0;top:0;width:42px;height:42px;
+    background:#f3f4f6;border:none;border-left:1px solid #d1d5db;
+    cursor:pointer;display:flex;align-items:center;justify-content:center;
+    transition:background .15s ease;
+}
+.email-dropdown-btn:hover{background:#e5e7eb;}
+.email-dropdown-btn svg{width:16px;height:16px;color:#6b7280;transition:transform .2s ease;}
+.email-dropdown-btn.open svg{transform:rotate(180deg);}
+
+.email-dropdown-menu{
+    position:absolute;top:100%;left:0;right:0;
+    background:#fff;border:1px solid #d1d5db;border-top:none;
+    z-index:10;display:none;
+}
+.email-dropdown-menu.open{display:block;}
+.email-option{
+    padding:12px 14px;font-size:13px;cursor:pointer;
+    border-bottom:1px solid #f3f4f6;transition:background .1s ease;
+}
+.email-option:hover{background:#f3f4f6;}
+.email-option:last-child{border-bottom:none;}
+.email-option .email-label{font-weight:500;color:#1e1e2f;}
+.email-option .email-address{font-size:12px;color:#6b7280;margin-top:2px;}
+
+/* Selected Cheques Preview */
+.preview-section{margin-top:20px;}
+.preview-header{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:12px 16px;background:#f3f4f6;border:1px solid #e5e7eb;
+}
+.preview-header h4{font-size:13px;font-weight:600;color:#1e1e2f;}
+.preview-summary{font-size:12px;color:#6b7280;}
+.preview-summary span{font-weight:600;color:#16a34a;}
+
+.preview-table-wrapper{
+    max-height:250px;overflow-y:auto;
+    border:1px solid #e5e7eb;border-top:none;
+}
+.preview-table{width:100%;border-collapse:collapse;font-size:12px;}
+.preview-table th,.preview-table td{
+    padding:10px 12px;text-align:left;border-bottom:1px solid #f3f4f6;
+}
+.preview-table thead{background:#fafafa;position:sticky;top:0;}
+.preview-table thead th{font-weight:600;color:#374151;font-size:11px;text-transform:uppercase;}
+.preview-table tbody tr:last-child td{border-bottom:none;}
+.preview-table .col-amount{text-align:right;font-weight:500;}
+
+/* Modal Footer */
+.modal-footer{
+    padding:16px 20px;border-top:1px solid #e5e7eb;
+    display:flex;align-items:center;justify-content:flex-end;gap:12px;
+    flex-shrink:0;background:#fafafa;
+}
+.btn-modal{
+    height:40px;padding:0 24px;font-size:13px;font-weight:600;
+    border:none;cursor:pointer;display:flex;align-items:center;
+    justify-content:center;gap:8px;transition:all .15s ease;
+}
+.btn-modal-cancel{background:#fff;color:#374151;border:1px solid #d1d5db;}
+.btn-modal-cancel:hover{background:#f3f4f6;}
+.btn-modal-primary{background:#6366f1;color:#fff;}
+.btn-modal-primary:hover{background:#4f46e5;}
+.btn-modal-primary:disabled{opacity:.6;cursor:not-allowed;}
+
+/* Spinner */
+.spinner{
+    display:none;width:16px;height:16px;
+    border:2px solid rgba(255,255,255,.3);border-top-color:#fff;
+    border-radius:50%;animation:spin .6s linear infinite;
+}
+.spinner.active{display:inline-block;}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+/* ═══════════════ SUCCESS MODAL ═══════════════ */
+.success-modal .modal-header{background:#16a34a;}
+.success-icon{
+    width:60px;height:60px;margin:0 auto 16px;
+    background:#dcfce7;display:flex;align-items:center;
+    justify-content:center;border-radius:50%;
+}
+.success-icon svg{width:32px;height:32px;color:#16a34a;}
+.success-title{font-size:18px;font-weight:600;color:#1e1e2f;margin-bottom:8px;text-align:center;}
+.success-message{font-size:14px;color:#6b7280;text-align:center;line-height:1.5;}
+.success-btn{
+    width:100%;height:42px;margin-top:20px;
+    background:#1e1e2f;color:#fff;border:none;
+    font-size:14px;font-weight:600;cursor:pointer;
+    transition:background .15s ease;
+}
+.success-btn:hover{background:#2d2d44;}
+
+/* ═══════════════ RESPONSIVE ═══════════════ */
+@media(max-width:900px){
+    .selection-bar{flex-direction:column;gap:12px;align-items:flex-start;}
+}
+@media(max-width:768px){
+    .sidebar{width:200px;}
+    .main-content{margin-left:200px;}
+    .modal-box{width:95%;}
+}
+</style>
+</head>
+<body>
+
+<!-- ═══════════════ SIDEBAR ═══════════════ -->
+<aside class="sidebar">
+    <div class="sidebar-brand">
+        <div class="brand-icon">M</div>
+        <span>Admin Panel</span>
+    </div>
+    <nav class="sidebar-nav">
+        <a href="{% url 'admin_dashboard' %}" class="nav-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
+                <polyline points="9 22 9 12 15 12 15 22"/>
+            </svg>
+            Dashboard
+        </a>
+        <div class="nav-section">Cheque Management</div>
+        <a href="{% url 'cheque_list' %}" class="nav-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+                <polyline points="14 2 14 8 20 8"/>
+            </svg>
+            New Cheques
+        </a>
+        <a href="{% url 'cheque_deposited_list' %}" class="nav-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="20 6 9 17 4 12"/>
+            </svg>
+            Deposited
+        </a>
+        <a href="{% url 'cheque_rejected_list' %}" class="nav-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="15" y1="9" x2="9" y2="15"/>
+                <line x1="9" y1="9" x2="15" y2="15"/>
+            </svg>
+            Rejected
+        </a>
+        <div class="nav-section">System</div>
+        <a href="{% url 'reports_page' %}" class="nav-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="18" y1="20" x2="18" y2="10"/>
+                <line x1="12" y1="20" x2="12" y2="4"/>
+                <line x1="6" y1="20" x2="6" y2="14"/>
+            </svg>
+            Reports
+        </a>
+        <a href="{% url 'email_deposited_cheques' %}" class="nav-item active">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                <polyline points="22,6 12,13 2,6"/>
+            </svg>
+            Email Cheques
+        </a>
+        <a href="{% url 'logout' %}" class="nav-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/>
+                <polyline points="16 17 21 12 16 7"/>
+                <line x1="21" y1="12" x2="9" y2="12"/>
+            </svg>
+            Logout
+        </a>
+    </nav>
+    <div class="sidebar-footer">
+        <div class="user-badge">
+            <div class="avatar">{{ request.user.first_name.0 }}{{ request.user.last_name.0 }}</div>
+            <span class="uname">{{ request.user.first_name }} {{ request.user.last_name }}</span>
+        </div>
+    </div>
+</aside>
+
+<!-- ═══════════════ MAIN CONTENT ═══════════════ -->
+<main class="main-content">
+    <div class="content-header">
+        <h1>Email Deposited Cheques</h1>
+        <div class="header-actions">
+            <button class="btn-send-email" id="btnOpenEmailModal" disabled>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                    <polyline points="22,6 12,13 2,6"/>
+                </svg>
+                Send Email
+            </button>
+        </div>
+    </div>
+
+    <div class="page-body">
+        
+        <!-- Selection Bar -->
+        <div class="selection-bar">
+            <div class="selection-info">
+                <div class="selection-count">
+                    Selected: <span id="selectedCount">0</span> of {{ total_count }}
+                </div>
+                <div class="selection-amount" id="selectedAmount" style="display:none;">
+                    Amount: ₹<span id="selectedAmountValue">0.00</span>
+                </div>
+            </div>
+            <div class="selection-actions">
+                <button type="button" class="btn-select-all" id="btnSelectAll">
+                    Select All
+                </button>
+                <button type="button" class="btn-clear-selection" id="btnClearSelection" style="display:none;">
+                    Clear Selection
+                </button>
+            </div>
+        </div>
+
+        <!-- Data Table -->
+        <div class="data-card">
+            <div class="data-card-header">
+                <h3>Deposited Cheques</h3>
+            </div>
+            <div class="table-wrapper">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th class="col-checkbox">
+                                <div class="checkbox-wrapper">
+                                    <div class="header-checkbox" id="headerCheckbox"></div>
+                                </div>
+                            </th>
+                            <th>SN</th>
+                            <th>Company Name</th>
+                            <th>Cheque No</th>
+                            <th>Amount</th>
+                            <th>Cheque Date</th>
+                            <th>Bank Name</th>
+                            <th>Branch</th>
+                            <th>Deposited At</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody">
+                        {% for cheque in page_obj %}
+                        <tr data-id="{{ cheque.id }}" data-amount="{{ cheque.amount }}">
+                            <td class="col-checkbox">
+                                <div class="checkbox-wrapper">
+                                    <div class="custom-checkbox" data-id="{{ cheque.id }}">
+                                        <input type="checkbox" value="{{ cheque.id }}">
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="col-sn">{{ forloop.counter|add:start_index }}</td>
+                            <td>{{ cheque.company_name }}</td>
+                            <td>{{ cheque.cheque_no }}</td>
+                            <td class="col-amount">₹{{ cheque.amount|floatformat:2 }}</td>
+                            <td class="col-date">{{ cheque.cheque_date|date:"Y-m-d" }}</td>
+                            <td>{{ cheque.deposit.bank_name }}</td>
+                            <td>{{ cheque.deposit.branch_name }}</td>
+                            <td class="col-date">{{ cheque.deposit.deposited_at|date:"Y-m-d H:i" }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="9" class="empty-cell">
+                                No deposited cheques found.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination -->
+            <div class="table-footer">
+                <div class="table-info">
+                    {% if page_obj.paginator.count > 0 %}
+                        Showing {{ page_obj.start_index }} – {{ page_obj.end_index }} of {{ page_obj.paginator.count }} entries
+                    {% else %}
+                        0 entries
+                    {% endif %}
+                </div>
+                
+                {% if page_obj.has_other_pages %}
+                <div class="pagination">
+                    {% if page_obj.has_previous %}
+                        <a href="?page=1" class="page-link">&laquo;</a>
+                        <a href="?page={{ page_obj.previous_page_number }}" class="page-link">&lsaquo;</a>
+                    {% else %}
+                        <span class="page-link disabled">&laquo;</span>
+                        <span class="page-link disabled">&lsaquo;</span>
+                    {% endif %}
+
+                    {% for num in page_range %}
+                        {% if page_obj.number == num %}
+                            <span class="page-link current">{{ num }}</span>
+                        {% else %}
+                            <a href="?page={{ num }}" class="page-link">{{ num }}</a>
+                        {% endif %}
+                    {% endfor %}
+
+                    {% if page_obj.has_next %}
+                        <a href="?page={{ page_obj.next_page_number }}" class="page-link">&rsaquo;</a>
+                        <a href="?page={{ page_obj.paginator.num_pages }}" class="page-link">&raquo;</a>
+                    {% else %}
+                        <span class="page-link disabled">&rsaquo;</span>
+                        <span class="page-link disabled">&raquo;</span>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+    </div>
+</main>
+
+<!-- ═══════════════ EMAIL MODAL ═══════════════ -->
+<div class="modal-backdrop" id="emailModal">
+    <div class="modal-box">
+        <div class="modal-header">
+            <h3>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                    <polyline points="22,6 12,13 2,6"/>
+                </svg>
+                Send Deposited Cheques via Email
+            </h3>
+            <button type="button" class="btn-close-modal" id="btnCloseEmailModal">&times;</button>
+        </div>
+        <div class="modal-body">
+            
+            <!-- Email Input -->
+            <div class="email-form-group">
+                <label>Recipient Email <span>*</span></label>
+                <div class="email-dropdown" id="emailDropdown">
+                    <div class="email-input-wrapper">
+                        <input type="email" class="email-input" id="emailInput" 
+                               placeholder="Enter email or select from list..." autocomplete="off">
+                        <button type="button" class="email-dropdown-btn" id="emailDropdownBtn">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="6 9 12 15 18 9"/>
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="email-dropdown-menu" id="emailDropdownMenu">
+                        {% for option in email_options %}
+                        <div class="email-option" data-email="{{ option.value }}">
+                            <div class="email-label">{{ option.label }}</div>
+                            <div class="email-address">{{ option.value }}</div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Preview Section -->
+            <div class="preview-section">
+                <div class="preview-header">
+                    <h4>Selected Cheques Preview</h4>
+                    <div class="preview-summary">
+                        <span id="previewCount">0</span> cheques | Total: <span id="previewAmount">₹0.00</span>
+                    </div>
+                </div>
+                <div class="preview-table-wrapper">
+                    <table class="preview-table">
+                        <thead>
+                            <tr>
+                                <th>Company</th>
+                                <th>Cheque No</th>
+                                <th>Amount</th>
+                                <th>Bank</th>
+                                <th>Deposited At</th>
+                            </tr>
+                        </thead>
+                        <tbody id="previewTableBody">
+                            <!-- Filled by JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn-modal btn-modal-cancel" id="btnCancelEmail">Cancel</button>
+            <button type="button" class="btn-modal btn-modal-primary" id="btnSendEmail">
+                <span class="spinner" id="sendSpinner"></span>
+                <span id="sendText">Send Email</span>
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════════ SUCCESS MODAL ═══════════════ -->
+<div class="modal-backdrop" id="successModal">
+    <div class="modal-box success-modal" style="width:400px;">
+        <div class="modal-header">
+            <h3>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="20 6 9 17 4 12"/>
+                </svg>
+                Email Sent
+            </h3>
+            <button type="button" class="btn-close-modal" id="btnCloseSuccessModal">&times;</button>
+        </div>
+        <div class="modal-body" style="text-align:center;padding:32px 20px;">
+            <div class="success-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="20 6 9 17 4 12"/>
+                </svg>
+            </div>
+            <div class="success-title">Email Sent Successfully!</div>
+            <div class="success-message" id="successMessage">
+                Your email has been sent.
+            </div>
+            <button type="button" class="success-btn" id="btnSuccessOk">OK</button>
+        </div>
+    </div>
+</div>
+
+<script>
+/* ═══════════════ STATE ═══════════════ */
+var selectedIds = new Set();
+var csrftoken = '{{ csrf_token }}';
+
+/* ═══════════════ DOM ELEMENTS ═══════════════ */
+var tableBody = document.getElementById('tableBody');
+var headerCheckbox = document.getElementById('headerCheckbox');
+var btnSelectAll = document.getElementById('btnSelectAll');
+var btnClearSelection = document.getElementById('btnClearSelection');
+var btnOpenEmailModal = document.getElementById('btnOpenEmailModal');
+var selectedCountEl = document.getElementById('selectedCount');
+var selectedAmountEl = document.getElementById('selectedAmount');
+var selectedAmountValueEl = document.getElementById('selectedAmountValue');
+
+// Email Modal
+var emailModal = document.getElementById('emailModal');
+var btnCloseEmailModal = document.getElementById('btnCloseEmailModal');
+var btnCancelEmail = document.getElementById('btnCancelEmail');
+var btnSendEmail = document.getElementById('btnSendEmail');
+var sendSpinner = document.getElementById('sendSpinner');
+var sendText = document.getElementById('sendText');
+var emailInput = document.getElementById('emailInput');
+var emailDropdownBtn = document.getElementById('emailDropdownBtn');
+var emailDropdownMenu = document.getElementById('emailDropdownMenu');
+var previewTableBody = document.getElementById('previewTableBody');
+var previewCount = document.getElementById('previewCount');
+var previewAmount = document.getElementById('previewAmount');
+
+// Success Modal
+var successModal = document.getElementById('successModal');
+var btnCloseSuccessModal = document.getElementById('btnCloseSuccessModal');
+var btnSuccessOk = document.getElementById('btnSuccessOk');
+var successMessage = document.getElementById('successMessage');
+
+/* ═══════════════ CHECKBOX FUNCTIONS ═══════════════ */
+function updateSelectionUI() {
+    var count = selectedIds.size;
+    selectedCountEl.textContent = count;
+    
+    // Calculate selected amount
+    var totalAmount = 0;
+    selectedIds.forEach(function(id) {
+        var row = tableBody.querySelector('tr[data-id="' + id + '"]');
+        if (row) {
+            totalAmount += parseFloat(row.dataset.amount) || 0;
+        }
+    });
+    
+    if (count > 0) {
+        selectedAmountEl.style.display = 'block';
+        selectedAmountValueEl.textContent = totalAmount.toLocaleString('en-IN', {minimumFractionDigits: 2});
+        btnOpenEmailModal.disabled = false;
+        btnClearSelection.style.display = 'inline-block';
+    } else {
+        selectedAmountEl.style.display = 'none';
+        btnOpenEmailModal.disabled = true;
+        btnClearSelection.style.display = 'none';
+    }
+    
+    // Update header checkbox
+    var allCheckboxes = tableBody.querySelectorAll('.custom-checkbox');
+    var allChecked = allCheckboxes.length > 0 && selectedIds.size === allCheckboxes.length;
+    var someChecked = selectedIds.size > 0 && selectedIds.size < allCheckboxes.length;
+    
+    headerCheckbox.classList.remove('checked', 'partial');
+    if (allChecked) {
+        headerCheckbox.classList.add('checked');
+        btnSelectAll.classList.add('active');
+        btnSelectAll.textContent = 'Deselect All';
+    } else if (someChecked) {
+        headerCheckbox.classList.add('partial');
+        btnSelectAll.classList.remove('active');
+        btnSelectAll.textContent = 'Select All';
+    } else {
+        btnSelectAll.classList.remove('active');
+        btnSelectAll.textContent = 'Select All';
+    }
+    
+    // Update row styles
+    tableBody.querySelectorAll('tr').forEach(function(row) {
+        var id = row.dataset.id;
+        if (id && selectedIds.has(parseInt(id))) {
+            row.classList.add('selected');
+        } else {
+            row.classList.remove('selected');
+        }
+    });
+}
+
+function toggleCheckbox(checkbox) {
+    var id = parseInt(checkbox.dataset.id);
+    var input = checkbox.querySelector('input');
+    
+    if (selectedIds.has(id)) {
+        selectedIds.delete(id);
+        checkbox.classList.remove('checked');
+        input.checked = false;
+    } else {
+        selectedIds.add(id);
+        checkbox.classList.add('checked');
+        input.checked = true;
+    }
+    
+    updateSelectionUI();
+}
+
+function selectAll() {
+    var allCheckboxes = tableBody.querySelectorAll('.custom-checkbox');
+    allCheckboxes.forEach(function(checkbox) {
+        var id = parseInt(checkbox.dataset.id);
+        var input = checkbox.querySelector('input');
+        selectedIds.add(id);
+        checkbox.classList.add('checked');
+        input.checked = true;
+    });
+    updateSelectionUI();
+}
+
+function deselectAll() {
+    var allCheckboxes = tableBody.querySelectorAll('.custom-checkbox');
+    allCheckboxes.forEach(function(checkbox) {
+        var input = checkbox.querySelector('input');
+        checkbox.classList.remove('checked');
+        input.checked = false;
+    });
+    selectedIds.clear();
+    updateSelectionUI();
+}
+
+/* ═══════════════ EVENT LISTENERS ═══════════════ */
+
+// Row checkbox click
+tableBody.addEventListener('click', function(e) {
+    var checkbox = e.target.closest('.custom-checkbox');
+    if (checkbox) {
+        toggleCheckbox(checkbox);
+    }
+});
+
+// Header checkbox click
+headerCheckbox.addEventListener('click', function() {
+    if (headerCheckbox.classList.contains('checked')) {
+        deselectAll();
+    } else {
+        selectAll();
+    }
+});
+
+// Select All button
+btnSelectAll.addEventListener('click', function() {
+    if (btnSelectAll.classList.contains('active')) {
+        deselectAll();
+    } else {
+        selectAll();
+    }
+});
+
+// Clear Selection button
+btnClearSelection.addEventListener('click', function() {
+    deselectAll();
+});
+
+/* ═══════════════ EMAIL DROPDOWN ═══════════════ */
+emailDropdownBtn.addEventListener('click', function() {
+    emailDropdownMenu.classList.toggle('open');
+    emailDropdownBtn.classList.toggle('open');
+});
+
+document.querySelectorAll('.email-option').forEach(function(option) {
+    option.addEventListener('click', function() {
+        emailInput.value = option.dataset.email;
+        emailDropdownMenu.classList.remove('open');
+        emailDropdownBtn.classList.remove('open');
+    });
+});
+
+document.addEventListener('click', function(e) {
+    if (!e.target.closest('.email-dropdown')) {
+        emailDropdownMenu.classList.remove('open');
+        emailDropdownBtn.classList.remove('open');
+    }
+});
+
+/* ═══════════════ EMAIL MODAL ═══════════════ */
+btnOpenEmailModal.addEventListener('click', function() {
+    if (selectedIds.size === 0) return;
+    
+    // Load preview data
+    loadPreviewData();
+    
+    emailModal.classList.add('active');
+});
+
+function closeEmailModal() {
+    emailModal.classList.remove('active');
+    emailInput.value = '';
+}
+
+btnCloseEmailModal.addEventListener('click', closeEmailModal);
+btnCancelEmail.addEventListener('click', closeEmailModal);
+
+emailModal.addEventListener('click', function(e) {
+    if (e.target === emailModal) closeEmailModal();
+});
+
+function loadPreviewData() {
+    var ids = Array.from(selectedIds);
+    
+    fetch('{% url "get_selected_cheques_data" %}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrftoken
+        },
+        body: JSON.stringify({ cheque_ids: ids })
+    })
+    .then(function(response) { return response.json(); })
+    .then(function(data) {
+        if (data.success) {
+            previewCount.textContent = data.total_count;
+            previewAmount.textContent = '₹' + data.total_amount.toLocaleString('en-IN', {minimumFractionDigits: 2});
+            
+            var html = '';
+            data.cheques.forEach(function(cheque) {
+                html += '<tr>' +
+                    '<td>' + escapeHtml(cheque.company_name) + '</td>' +
+                    '<td>' + escapeHtml(cheque.cheque_no) + '</td>' +
+                    '<td class="col-amount">₹' + cheque.amount.toLocaleString('en-IN', {minimumFractionDigits: 2}) + '</td>' +
+                    '<td>' + escapeHtml(cheque.bank_name) + '</td>' +
+                    '<td>' + escapeHtml(cheque.deposited_at) + '</td>' +
+                '</tr>';
+            });
+            previewTableBody.innerHTML = html;
+        }
+    })
+    .catch(function(error) {
+        console.error('Error loading preview:', error);
+    });
+}
+
+function escapeHtml(text) {
+    if (!text) return '';
+    var div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+/* ═══════════════ SEND EMAIL ═══════════════ */
+btnSendEmail.addEventListener('click', function() {
+    var email = emailInput.value.trim();
+    
+    if (!email) {
+        alert('Please enter recipient email address.');
+        emailInput.focus();
+        return;
+    }
+    
+    if (!validateEmail(email)) {
+        alert('Please enter a valid email address.');
+        emailInput.focus();
+        return;
+    }
+    
+    var ids = Array.from(selectedIds);
+    
+    // Show loading
+    sendSpinner.classList.add('active');
+    sendText.textContent = 'Sending...';
+    btnSendEmail.disabled = true;
+    
+    fetch('{% url "send_deposited_email" %}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrftoken
+        },
+        body: JSON.stringify({
+            email: email,
+            cheque_ids: ids
+        })
+    })
+    .then(function(response) { return response.json(); })
+    .then(function(data) {
+        sendSpinner.classList.remove('active');
+        sendText.textContent = 'Send Email';
+        btnSendEmail.disabled = false;
+        
+        if (data.success) {
+            closeEmailModal();
+            successMessage.textContent = 'Email has been sent to ' + email;
+            successModal.classList.add('active');
+            deselectAll();
+        } else {
+            alert(data.message || 'Failed to send email.');
+        }
+    })
+    .catch(function(error) {
+        sendSpinner.classList.remove('active');
+        sendText.textContent = 'Send Email';
+        btnSendEmail.disabled = false;
+        alert('Something went wrong. Please try again.');
+        console.error('Error:', error);
+    });
+});
+
+function validateEmail(email) {
+    var re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return re.test(email);
+}
+
+/* ═══════════════ SUCCESS MODAL ═══════════════ */
+function closeSuccessModal() {
+    successModal.classList.remove('active');
+}
+
+btnCloseSuccessModal.addEventListener('click', closeSuccessModal);
+btnSuccessOk.addEventListener('click', closeSuccessModal);
+
+successModal.addEventListener('click', function(e) {
+    if (e.target === successModal) closeSuccessModal();
+});
+
+/* ═══════════════ KEYBOARD SHORTCUTS ═══════════════ */
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        if (successModal.classList.contains('active')) {
+            closeSuccessModal();
+        } else if (emailModal.classList.contains('active')) {
+            closeEmailModal();
+        }
+    }
+});
+
+// Initialize
+updateSelectionUI();
+</script>
+
+</body>
+</html>
