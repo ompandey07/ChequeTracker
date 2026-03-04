@@ -1,16 +1,17 @@
+from .models import ChequeModel, DepositModel ,  KhajaBill, KhajaBillItem
 from django.db.models.functions import TruncMonth, TruncDate
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST
 from django.http import JsonResponse, HttpResponse
+from datetime import datetime, timedelta , date
 from django.shortcuts import render, redirect
-from .models import ChequeModel, DepositModel
 from django.core.paginator import Paginator
 from django.db.models import Sum, Count, Q
 from django.core.mail import EmailMessage
-from django.conf import settings
-from datetime import datetime, timedelta
 from django.db.models import Sum, Count
 from django.http import JsonResponse
+from django.conf import settings
+from decimal import Decimal
 from io import BytesIO
 import pandas as pd
 import json
@@ -324,7 +325,7 @@ def cheque_revert_to_new(request, pk):
 
 @login_required(login_url='/auth/login/')
 def reports_page(request):
-    """Main reports page with filters"""
+    """Main reports page with filters - Only Deposited and Rejected cheques"""
     
     # Get filter parameters
     date_from = request.GET.get('date_from', '')
@@ -333,14 +334,25 @@ def reports_page(request):
     status = request.GET.get('status', '')
     cheque_no = request.GET.get('cheque_no', '')
     
-    # Base queryset
-    cheques = ChequeModel.objects.all()
+    # Check if any filter is applied
+    has_filters = any([date_from, date_to, company_name, status, cheque_no])
+    
+    # Base queryset - ONLY Deposited and Rejected (exclude New)
+    cheques = ChequeModel.objects.filter(
+        status__in=['Deposited', 'Rejected']
+    ).select_related('deposit')
     
     # Apply filters
     if date_from:
-        cheques = cheques.filter(cheque_date__gte=date_from)
+        cheques = cheques.filter(
+            Q(deposit__deposited_at__date__gte=date_from) | 
+            Q(status='Rejected', updated_at__date__gte=date_from)
+        )
     if date_to:
-        cheques = cheques.filter(cheque_date__lte=date_to)
+        cheques = cheques.filter(
+            Q(deposit__deposited_at__date__lte=date_to) | 
+            Q(status='Rejected', updated_at__date__lte=date_to)
+        )
     if company_name:
         cheques = cheques.filter(company_name__icontains=company_name)
     if status:
@@ -348,75 +360,51 @@ def reports_page(request):
     if cheque_no:
         cheques = cheques.filter(cheque_no__icontains=cheque_no)
     
+    # Order by deposited date (most recent first)
+    cheques = cheques.order_by('-deposit__deposited_at', '-updated_at')
+    
     # Calculate statistics for filtered data
     total_count = cheques.count()
     total_amount = cheques.aggregate(total=Sum('amount'))['total'] or 0
     
     # Status breakdown
-    status_breakdown = cheques.values('status').annotate(
-        count=Count('id'),
-        total=Sum('amount')
-    )
-    
-    new_count = 0
-    new_amount = 0
-    deposited_count = 0
-    deposited_amount = 0
-    rejected_count = 0
-    rejected_amount = 0
-    
-    for item in status_breakdown:
-        if item['status'] == 'New':
-            new_count = item['count']
-            new_amount = item['total'] or 0
-        elif item['status'] == 'Deposited':
-            deposited_count = item['count']
-            deposited_amount = item['total'] or 0
-        elif item['status'] == 'Rejected':
-            rejected_count = item['count']
-            rejected_amount = item['total'] or 0
-    
-    # Monthly breakdown for chart
-    monthly_data = cheques.annotate(
-        month=TruncMonth('cheque_date')
-    ).values('month').annotate(
-        count=Count('id'),
-        total=Sum('amount')
-    ).order_by('month')
-    
-    months = []
-    monthly_counts = []
-    monthly_amounts = []
-    for item in monthly_data:
-        if item['month']:
-            months.append(item['month'].strftime('%b %Y'))
-            monthly_counts.append(item['count'])
-            monthly_amounts.append(float(item['total']) if item['total'] else 0)
-    
-    # Company breakdown
-    company_data = cheques.values('company_name').annotate(
-        count=Count('id'),
-        total=Sum('amount')
-    ).order_by('-total')[:10]
-    
-    company_names = [item['company_name'][:15] for item in company_data]
-    company_amounts = [float(item['total']) if item['total'] else 0 for item in company_data]
+    deposited_count = cheques.filter(status='Deposited').count()
+    deposited_amount = cheques.filter(status='Deposited').aggregate(total=Sum('amount'))['total'] or 0
+    rejected_count = cheques.filter(status='Rejected').count()
+    rejected_amount = cheques.filter(status='Rejected').aggregate(total=Sum('amount'))['total'] or 0
     
     # Get unique company names for dropdown
-    all_companies = ChequeModel.objects.values_list('company_name', flat=True).distinct().order_by('company_name')
+    all_companies = list(
+        ChequeModel.objects.filter(status__in=['Deposited', 'Rejected'])
+        .values_list('company_name', flat=True)
+        .distinct()
+        .order_by('company_name')
+    )
     
-    # Pagination
-    paginator = Paginator(cheques, 20)
-    page_number = request.GET.get('page', 1)
-    page_obj = paginator.get_page(page_number)
+    # Only show data if filters are applied
+    if has_filters:
+        # Pagination
+        paginator = Paginator(cheques, 20)
+        page_number = request.GET.get('page', 1)
+        page_obj = paginator.get_page(page_number)
+        
+        current = page_obj.number
+        total_pages = paginator.num_pages
+        start_p = max(current - 2, 1)
+        end_p = min(current + 2, total_pages)
+        page_range = range(start_p, end_p + 1)
+        
+        start_index = (page_obj.number - 1) * paginator.per_page
+    else:
+        # No data on initial load
+        page_obj = None
+        page_range = []
+        start_index = 0
+        total_count = 0
+        total_amount = 0
     
-    current = page_obj.number
-    total_pages = paginator.num_pages
-    start_p = max(current - 2, 1)
-    end_p = min(current + 2, total_pages)
-    page_range = range(start_p, end_p + 1)
-    
-    start_index = (page_obj.number - 1) * paginator.per_page
+    # Current date for default date_to
+    current_date = date.today().strftime('%Y-%m-%d')
     
     context = {
         'page_obj': page_obj,
@@ -424,25 +412,19 @@ def reports_page(request):
         'start_index': start_index,
         'total_count': total_count,
         'total_amount': total_amount,
-        'new_count': new_count,
-        'new_amount': new_amount,
         'deposited_count': deposited_count,
         'deposited_amount': deposited_amount,
         'rejected_count': rejected_count,
         'rejected_amount': rejected_amount,
-        'all_companies': all_companies,
+        'all_companies_json': json.dumps(all_companies),
+        'has_filters': has_filters,
+        'current_date': current_date,
         # Filter values for form persistence
         'filter_date_from': date_from,
-        'filter_date_to': date_to,
+        'filter_date_to': date_to if date_to else current_date,
         'filter_company': company_name,
         'filter_status': status,
         'filter_cheque_no': cheque_no,
-        # Chart data
-        'months_json': json.dumps(months),
-        'monthly_counts_json': json.dumps(monthly_counts),
-        'monthly_amounts_json': json.dumps(monthly_amounts),
-        'company_names_json': json.dumps(company_names),
-        'company_amounts_json': json.dumps(company_amounts),
     }
     
     return render(request, 'Report/reports.html', context)
@@ -450,7 +432,7 @@ def reports_page(request):
 
 @login_required(login_url='/auth/login/')
 def export_report_excel(request):
-    """Export filtered data to beautiful Excel report"""
+    """Export filtered data to Excel report"""
     
     # Get filter parameters
     date_from = request.GET.get('date_from', '')
@@ -459,14 +441,22 @@ def export_report_excel(request):
     status = request.GET.get('status', '')
     cheque_no = request.GET.get('cheque_no', '')
     
-    # Base queryset
-    cheques = ChequeModel.objects.all()
+    # Base queryset - ONLY Deposited and Rejected
+    cheques = ChequeModel.objects.filter(
+        status__in=['Deposited', 'Rejected']
+    ).select_related('deposit')
     
     # Apply filters
     if date_from:
-        cheques = cheques.filter(cheque_date__gte=date_from)
+        cheques = cheques.filter(
+            Q(deposit__deposited_at__date__gte=date_from) | 
+            Q(status='Rejected', updated_at__date__gte=date_from)
+        )
     if date_to:
-        cheques = cheques.filter(cheque_date__lte=date_to)
+        cheques = cheques.filter(
+            Q(deposit__deposited_at__date__lte=date_to) | 
+            Q(status='Rejected', updated_at__date__lte=date_to)
+        )
     if company_name:
         cheques = cheques.filter(company_name__icontains=company_name)
     if status:
@@ -474,30 +464,35 @@ def export_report_excel(request):
     if cheque_no:
         cheques = cheques.filter(cheque_no__icontains=cheque_no)
     
+    cheques = cheques.order_by('-deposit__deposited_at', '-updated_at')
+    
     # Prepare data for Excel
     data = []
     for idx, cheque in enumerate(cheques, 1):
+        # Get deposited date
+        deposited_date = ''
+        bank_name = ''
+        branch = ''
+        
+        if cheque.status == 'Deposited' and hasattr(cheque, 'deposit') and cheque.deposit:
+            deposited_date = cheque.deposit.deposited_at.strftime('%Y-%m-%d %H:%M') if cheque.deposit.deposited_at else ''
+            bank_name = cheque.deposit.bank_name
+            branch = cheque.deposit.branch_name
+        elif cheque.status == 'Rejected':
+            deposited_date = cheque.updated_at.strftime('%Y-%m-%d %H:%M') if cheque.updated_at else ''
+        
         row = {
             'SN': idx,
             'Company Name': cheque.company_name,
             'Cheque No': cheque.cheque_no,
-            'Amount': float(cheque.amount),
+            'Amount (NPR)': float(cheque.amount),
             'Cheque Date': cheque.cheque_date.strftime('%Y-%m-%d') if cheque.cheque_date else '',
+            'Deposited/Rejected Date': deposited_date,
             'Status': cheque.status,
+            'Bank Name': bank_name,
+            'Branch': branch,
             'Remarks': cheque.remarks or '',
-            'Created At': cheque.created_at.strftime('%Y-%m-%d %H:%M') if cheque.created_at else '',
         }
-        
-        # Add deposit info if deposited
-        if cheque.status == 'Deposited' and hasattr(cheque, 'deposit'):
-            row['Bank Name'] = cheque.deposit.bank_name
-            row['Branch'] = cheque.deposit.branch_name
-            row['Deposited At'] = cheque.deposit.deposited_at.strftime('%Y-%m-%d %H:%M') if cheque.deposit.deposited_at else ''
-        else:
-            row['Bank Name'] = ''
-            row['Branch'] = ''
-            row['Deposited At'] = ''
-        
         data.append(row)
     
     # Create DataFrame
@@ -505,7 +500,6 @@ def export_report_excel(request):
     
     # Calculate summary statistics
     total_amount = cheques.aggregate(total=Sum('amount'))['total'] or 0
-    new_amount = cheques.filter(status='New').aggregate(total=Sum('amount'))['total'] or 0
     deposited_amount = cheques.filter(status='Deposited').aggregate(total=Sum('amount'))['total'] or 0
     rejected_amount = cheques.filter(status='Rejected').aggregate(total=Sum('amount'))['total'] or 0
     
@@ -516,7 +510,6 @@ def export_report_excel(request):
         workbook = writer.book
         
         # ═══════════════ FORMATS ═══════════════
-        # Header format
         header_format = workbook.add_format({
             'bold': True,
             'font_size': 11,
@@ -528,7 +521,6 @@ def export_report_excel(request):
             'text_wrap': True
         })
         
-        # Title format
         title_format = workbook.add_format({
             'bold': True,
             'font_size': 18,
@@ -537,7 +529,6 @@ def export_report_excel(request):
             'valign': 'vcenter'
         })
         
-        # Subtitle format
         subtitle_format = workbook.add_format({
             'font_size': 11,
             'font_color': '#6b7280',
@@ -545,7 +536,6 @@ def export_report_excel(request):
             'valign': 'vcenter'
         })
         
-        # Cell format
         cell_format = workbook.add_format({
             'font_size': 10,
             'border': 1,
@@ -553,32 +543,19 @@ def export_report_excel(request):
             'valign': 'vcenter'
         })
         
-        # Number format
         number_format = workbook.add_format({
             'font_size': 10,
             'border': 1,
             'align': 'right',
             'valign': 'vcenter',
-            'num_format': '#,##0.00'
+            'num_format': 'NPR #,##0.00'
         })
         
-        # Date format
         date_format = workbook.add_format({
             'font_size': 10,
             'border': 1,
             'align': 'center',
             'valign': 'vcenter'
-        })
-        
-        # Status formats
-        status_new_format = workbook.add_format({
-            'font_size': 10,
-            'border': 1,
-            'align': 'center',
-            'valign': 'vcenter',
-            'bg_color': '#dbeafe',
-            'font_color': '#1d4ed8',
-            'bold': True
         })
         
         status_deposited_format = workbook.add_format({
@@ -601,7 +578,6 @@ def export_report_excel(request):
             'bold': True
         })
         
-        # Summary label format
         summary_label_format = workbook.add_format({
             'bold': True,
             'font_size': 11,
@@ -612,7 +588,6 @@ def export_report_excel(request):
             'valign': 'vcenter'
         })
         
-        # Summary value format
         summary_value_format = workbook.add_format({
             'bold': True,
             'font_size': 11,
@@ -621,10 +596,9 @@ def export_report_excel(request):
             'border': 1,
             'align': 'right',
             'valign': 'vcenter',
-            'num_format': '₹#,##0.00'
+            'num_format': 'NPR #,##0.00'
         })
         
-        # Total row format
         total_label_format = workbook.add_format({
             'bold': True,
             'font_size': 11,
@@ -643,7 +617,7 @@ def export_report_excel(request):
             'border': 1,
             'align': 'right',
             'valign': 'vcenter',
-            'num_format': '₹#,##0.00'
+            'num_format': 'NPR #,##0.00'
         })
         
         # ═══════════════ MAIN REPORT SHEET ═══════════════
@@ -653,17 +627,16 @@ def export_report_excel(request):
         worksheet.set_column('A:A', 6)   # SN
         worksheet.set_column('B:B', 25)  # Company Name
         worksheet.set_column('C:C', 15)  # Cheque No
-        worksheet.set_column('D:D', 15)  # Amount
-        worksheet.set_column('E:E', 12)  # Cheque Date
-        worksheet.set_column('F:F', 12)  # Status
-        worksheet.set_column('G:G', 25)  # Remarks
-        worksheet.set_column('H:H', 16)  # Created At
-        worksheet.set_column('I:I', 20)  # Bank Name
-        worksheet.set_column('J:J', 15)  # Branch
-        worksheet.set_column('K:K', 16)  # Deposited At
+        worksheet.set_column('D:D', 18)  # Amount
+        worksheet.set_column('E:E', 14)  # Cheque Date
+        worksheet.set_column('F:F', 18)  # Deposited Date
+        worksheet.set_column('G:G', 12)  # Status
+        worksheet.set_column('H:H', 20)  # Bank Name
+        worksheet.set_column('I:I', 15)  # Branch
+        worksheet.set_column('J:J', 25)  # Remarks
         
         # Title
-        worksheet.merge_range('A1:K1', 'CHEQUE MANAGEMENT REPORT', title_format)
+        worksheet.merge_range('A1:J1', 'CHEQUE REPORT - DEPOSITED & REJECTED', title_format)
         worksheet.set_row(0, 30)
         
         # Subtitle with date range
@@ -675,7 +648,7 @@ def export_report_excel(request):
         if status:
             filter_text += f' | Status: {status}'
         
-        worksheet.merge_range('A2:K2', filter_text, subtitle_format)
+        worksheet.merge_range('A2:J2', filter_text, subtitle_format)
         worksheet.set_row(1, 20)
         
         # Empty row
@@ -685,70 +658,60 @@ def export_report_excel(request):
         worksheet.merge_range('A4:B4', 'SUMMARY', header_format)
         worksheet.merge_range('C4:D4', '', header_format)
         
-        worksheet.write('A5', 'Total Cheques:', summary_label_format)
+        worksheet.write('A5', 'Total Records:', summary_label_format)
         worksheet.write('B5', len(data), workbook.add_format({
             'bold': True, 'font_size': 11, 'bg_color': '#f3f4f6', 'border': 1, 'align': 'center'
         }))
         worksheet.write('C5', 'Total Amount:', summary_label_format)
         worksheet.write('D5', float(total_amount), summary_value_format)
         
-        worksheet.write('A6', 'New:', summary_label_format)
-        worksheet.write('B6', cheques.filter(status='New').count(), workbook.add_format({
-            'bold': True, 'font_size': 11, 'bg_color': '#dbeafe', 'border': 1, 'align': 'center', 'font_color': '#1d4ed8'
-        }))
-        worksheet.write('C6', 'New Amount:', summary_label_format)
-        worksheet.write('D6', float(new_amount), summary_value_format)
-        
-        worksheet.write('A7', 'Deposited:', summary_label_format)
-        worksheet.write('B7', cheques.filter(status='Deposited').count(), workbook.add_format({
+        worksheet.write('A6', 'Deposited:', summary_label_format)
+        worksheet.write('B6', cheques.filter(status='Deposited').count(), workbook.add_format({
             'bold': True, 'font_size': 11, 'bg_color': '#dcfce7', 'border': 1, 'align': 'center', 'font_color': '#16a34a'
         }))
-        worksheet.write('C7', 'Deposited Amount:', summary_label_format)
-        worksheet.write('D7', float(deposited_amount), summary_value_format)
+        worksheet.write('C6', 'Deposited Amount:', summary_label_format)
+        worksheet.write('D6', float(deposited_amount), summary_value_format)
         
-        worksheet.write('A8', 'Rejected:', summary_label_format)
-        worksheet.write('B8', cheques.filter(status='Rejected').count(), workbook.add_format({
+        worksheet.write('A7', 'Rejected:', summary_label_format)
+        worksheet.write('B7', cheques.filter(status='Rejected').count(), workbook.add_format({
             'bold': True, 'font_size': 11, 'bg_color': '#fee2e2', 'border': 1, 'align': 'center', 'font_color': '#dc2626'
         }))
-        worksheet.write('C8', 'Rejected Amount:', summary_label_format)
-        worksheet.write('D8', float(rejected_amount), summary_value_format)
+        worksheet.write('C7', 'Rejected Amount:', summary_label_format)
+        worksheet.write('D7', float(rejected_amount), summary_value_format)
         
         # Empty row
-        worksheet.set_row(8, 15)
+        worksheet.set_row(7, 15)
         
         # Data header row
-        headers = ['SN', 'Company Name', 'Cheque No', 'Amount', 'Cheque Date', 
-                   'Status', 'Remarks', 'Created At', 'Bank Name', 'Branch', 'Deposited At']
+        headers = ['SN', 'Company Name', 'Cheque No', 'Amount (NPR)', 'Cheque Date', 
+                   'Deposited/Rejected Date', 'Status', 'Bank Name', 'Branch', 'Remarks']
         
         for col, header in enumerate(headers):
-            worksheet.write(9, col, header, header_format)
-        worksheet.set_row(9, 25)
+            worksheet.write(8, col, header, header_format)
+        worksheet.set_row(8, 25)
         
         # Data rows
-        row_num = 10
+        row_num = 9
         for item in data:
             worksheet.write(row_num, 0, item['SN'], date_format)
             worksheet.write(row_num, 1, item['Company Name'], cell_format)
             worksheet.write(row_num, 2, item['Cheque No'], cell_format)
-            worksheet.write(row_num, 3, item['Amount'], number_format)
+            worksheet.write(row_num, 3, item['Amount (NPR)'], number_format)
             worksheet.write(row_num, 4, item['Cheque Date'], date_format)
+            worksheet.write(row_num, 5, item['Deposited/Rejected Date'], date_format)
             
             # Status with conditional formatting
             status_val = item['Status']
-            if status_val == 'New':
-                worksheet.write(row_num, 5, status_val, status_new_format)
-            elif status_val == 'Deposited':
-                worksheet.write(row_num, 5, status_val, status_deposited_format)
+            if status_val == 'Deposited':
+                worksheet.write(row_num, 6, status_val, status_deposited_format)
             else:
-                worksheet.write(row_num, 5, status_val, status_rejected_format)
+                worksheet.write(row_num, 6, status_val, status_rejected_format)
             
-            worksheet.write(row_num, 6, item['Remarks'], cell_format)
-            worksheet.write(row_num, 7, item['Created At'], date_format)
-            worksheet.write(row_num, 8, item['Bank Name'], cell_format)
-            worksheet.write(row_num, 9, item['Branch'], cell_format)
-            worksheet.write(row_num, 10, item['Deposited At'], date_format)
+            worksheet.write(row_num, 7, item['Bank Name'], cell_format)
+            worksheet.write(row_num, 8, item['Branch'], cell_format)
+            worksheet.write(row_num, 9, item['Remarks'], cell_format)
             
-            worksheet.set_row(row_num, 20)
+            worksheet.set_row(row_num, 18)
             row_num += 1
         
         # Total row
@@ -757,76 +720,12 @@ def export_report_excel(request):
             worksheet.write(row_num, 1, '', total_label_format)
             worksheet.write(row_num, 2, 'TOTAL:', total_label_format)
             worksheet.write(row_num, 3, float(total_amount), total_value_format)
-            for col in range(4, 11):
+            for col in range(4, 10):
                 worksheet.write(row_num, col, '', total_label_format)
-            worksheet.set_row(row_num, 25)
+            worksheet.set_row(row_num, 22)
         
         # Freeze panes
-        worksheet.freeze_panes(10, 0)
-        
-        # ═══════════════ SUMMARY SHEET ═══════════════
-        summary_sheet = workbook.add_worksheet('Summary')
-        
-        summary_sheet.set_column('A:A', 25)
-        summary_sheet.set_column('B:B', 15)
-        summary_sheet.set_column('C:C', 20)
-        
-        summary_sheet.merge_range('A1:C1', 'CHEQUE SUMMARY REPORT', title_format)
-        summary_sheet.set_row(0, 30)
-        
-        summary_sheet.merge_range('A2:C2', f'Generated: {datetime.now().strftime("%Y-%m-%d %H:%M")}', subtitle_format)
-        
-        # Summary table
-        summary_sheet.write('A4', 'Category', header_format)
-        summary_sheet.write('B4', 'Count', header_format)
-        summary_sheet.write('C4', 'Amount', header_format)
-        
-        summary_sheet.write('A5', 'Total Cheques', summary_label_format)
-        summary_sheet.write('B5', len(data), cell_format)
-        summary_sheet.write('C5', float(total_amount), number_format)
-        
-        summary_sheet.write('A6', 'New / Pending', status_new_format)
-        summary_sheet.write('B6', cheques.filter(status='New').count(), cell_format)
-        summary_sheet.write('C6', float(new_amount), number_format)
-        
-        summary_sheet.write('A7', 'Deposited', status_deposited_format)
-        summary_sheet.write('B7', cheques.filter(status='Deposited').count(), cell_format)
-        summary_sheet.write('C7', float(deposited_amount), number_format)
-        
-        summary_sheet.write('A8', 'Rejected', status_rejected_format)
-        summary_sheet.write('B8', cheques.filter(status='Rejected').count(), cell_format)
-        summary_sheet.write('C8', float(rejected_amount), number_format)
-        
-        # Company breakdown
-        company_breakdown = cheques.values('company_name').annotate(
-            count=Count('id'),
-            total=Sum('amount')
-        ).order_by('-total')[:15]
-        
-        summary_sheet.merge_range('A11:C11', 'TOP COMPANIES BY AMOUNT', header_format)
-        
-        summary_sheet.write('A12', 'Company Name', header_format)
-        summary_sheet.write('B12', 'Cheques', header_format)
-        summary_sheet.write('C12', 'Amount', header_format)
-        
-        row = 13
-        for company in company_breakdown:
-            summary_sheet.write(f'A{row}', company['company_name'], cell_format)
-            summary_sheet.write(f'B{row}', company['count'], cell_format)
-            summary_sheet.write(f'C{row}', float(company['total']) if company['total'] else 0, number_format)
-            row += 1
-        
-        # Add chart
-        chart = workbook.add_chart({'type': 'pie'})
-        chart.add_series({
-            'name': 'Status Distribution',
-            'categories': '=Summary!$A$5:$A$8',
-            'values': '=Summary!$C$5:$C$8',
-            'data_labels': {'percentage': True},
-        })
-        chart.set_title({'name': 'Amount by Status'})
-        chart.set_style(10)
-        summary_sheet.insert_chart('E4', chart, {'x_scale': 1.2, 'y_scale': 1.2})
+        worksheet.freeze_panes(9, 0)
         
         # ═══════════════ COMPANY WISE SHEET ═══════════════
         company_sheet = workbook.add_worksheet('Company Wise')
@@ -837,23 +736,20 @@ def export_report_excel(request):
         company_sheet.set_column('D:D', 18)
         company_sheet.set_column('E:E', 12)
         company_sheet.set_column('F:F', 12)
-        company_sheet.set_column('G:G', 12)
         
-        company_sheet.merge_range('A1:G1', 'COMPANY WISE BREAKDOWN', title_format)
+        company_sheet.merge_range('A1:F1', 'COMPANY WISE BREAKDOWN', title_format)
         company_sheet.set_row(0, 30)
         
         company_sheet.write('A3', 'SN', header_format)
         company_sheet.write('B3', 'Company Name', header_format)
         company_sheet.write('C3', 'Total', header_format)
-        company_sheet.write('D3', 'Total Amount', header_format)
-        company_sheet.write('E3', 'New', header_format)
-        company_sheet.write('F3', 'Deposited', header_format)
-        company_sheet.write('G3', 'Rejected', header_format)
+        company_sheet.write('D3', 'Total Amount (NPR)', header_format)
+        company_sheet.write('E3', 'Deposited', header_format)
+        company_sheet.write('F3', 'Rejected', header_format)
         
         all_company_stats = cheques.values('company_name').annotate(
             total_count=Count('id'),
             total_amount=Sum('amount'),
-            new_count=Count('id', filter=Q(status='New')),
             deposited_count=Count('id', filter=Q(status='Deposited')),
             rejected_count=Count('id', filter=Q(status='Rejected'))
         ).order_by('-total_amount')
@@ -864,9 +760,8 @@ def export_report_excel(request):
             company_sheet.write(f'B{row}', company['company_name'], cell_format)
             company_sheet.write(f'C{row}', company['total_count'], cell_format)
             company_sheet.write(f'D{row}', float(company['total_amount']) if company['total_amount'] else 0, number_format)
-            company_sheet.write(f'E{row}', company['new_count'], cell_format)
-            company_sheet.write(f'F{row}', company['deposited_count'], cell_format)
-            company_sheet.write(f'G{row}', company['rejected_count'], cell_format)
+            company_sheet.write(f'E{row}', company['deposited_count'], cell_format)
+            company_sheet.write(f'F{row}', company['rejected_count'], cell_format)
             row += 1
     
     # Prepare response
@@ -889,43 +784,87 @@ def get_company_suggestions(request):
     query = request.GET.get('q', '')
     
     companies = ChequeModel.objects.filter(
+        status__in=['Deposited', 'Rejected'],
         company_name__icontains=query
     ).values_list('company_name', flat=True).distinct()[:10]
     
     return JsonResponse(list(companies), safe=False)
-
 #!==========================================================================================
 
 
 
+
+# !================================= EMAIL DEPOSITED CHEQUES =============================================================
 @login_required(login_url='/auth/login/')
 def email_deposited_cheques(request):
     """Page to select deposited cheques and send via email"""
     
+    # Get filter parameters
+    date_from = request.GET.get('date_from', '')
+    date_to = request.GET.get('date_to', '')
+    company_name = request.GET.get('company_name', '')
+    cheque_no = request.GET.get('cheque_no', '')
+    
+    # Check if any filter is applied
+    has_filters = any([date_from, date_to, company_name, cheque_no])
+    
+    # Base queryset - Only Deposited cheques
     cheques = ChequeModel.objects.filter(status='Deposited').select_related('deposit')
+    
+    # Apply filters
+    if date_from:
+        cheques = cheques.filter(deposit__deposited_at__date__gte=date_from)
+    if date_to:
+        cheques = cheques.filter(deposit__deposited_at__date__lte=date_to)
+    if company_name:
+        cheques = cheques.filter(company_name__icontains=company_name)
+    if cheque_no:
+        cheques = cheques.filter(cheque_no__icontains=cheque_no)
+    
+    # Order by deposited date (most recent first)
+    cheques = cheques.order_by('-deposit__deposited_at')
     
     # Calculate totals
     total_count = cheques.count()
     total_amount = cheques.aggregate(total=Sum('amount'))['total'] or 0
     
-    # Pagination
-    paginator = Paginator(cheques, 25)
-    page_number = request.GET.get('page', 1)
-    page_obj = paginator.get_page(page_number)
+    # Get unique company names for dropdown
+    all_companies = list(
+        ChequeModel.objects.filter(status='Deposited')
+        .values_list('company_name', flat=True)
+        .distinct()
+        .order_by('company_name')
+    )
     
-    current = page_obj.number
-    total_pages = paginator.num_pages
-    start_p = max(current - 2, 1)
-    end_p = min(current + 2, total_pages)
-    page_range = range(start_p, end_p + 1)
-    
-    start_index = (page_obj.number - 1) * paginator.per_page
+    # Current date for default date_to
+    current_date = date.today().strftime('%Y-%m-%d')
     
     # Predefined email addresses
     email_options = [
         {'value': 'pioneersoftware@outlook.com', 'label': 'Pioneer Software (Outlook)'},
         {'value': 'info@pioneersoftware.com', 'label': 'Pioneer Software (Info)'},
     ]
+    
+    # Only show data if filters are applied
+    if has_filters:
+        # Pagination
+        paginator = Paginator(cheques, 20)
+        page_number = request.GET.get('page', 1)
+        page_obj = paginator.get_page(page_number)
+        
+        current = page_obj.number
+        total_pages = paginator.num_pages
+        start_p = max(current - 2, 1)
+        end_p = min(current + 2, total_pages)
+        page_range = range(start_p, end_p + 1)
+        
+        start_index = (page_obj.number - 1) * paginator.per_page
+    else:
+        page_obj = None
+        page_range = []
+        start_index = 0
+        total_count = 0
+        total_amount = 0
     
     context = {
         'page_obj': page_obj,
@@ -934,11 +873,20 @@ def email_deposited_cheques(request):
         'total_count': total_count,
         'total_amount': total_amount,
         'email_options': email_options,
+        'all_companies_json': json.dumps(all_companies),
+        'has_filters': has_filters,
+        'current_date': current_date,
+        # Filter values for form persistence
+        'filter_date_from': date_from,
+        'filter_date_to': date_to if date_to else current_date,
+        'filter_company': company_name,
+        'filter_cheque_no': cheque_no,
     }
     
     return render(request, 'Report/email_deposited.html', context)
 
 
+# !================================= EMAIL DEPOSITED CHEQUES =============================================================
 @login_required(login_url='/auth/login/')
 def send_deposited_email(request):
     """API endpoint to send email with selected deposited cheques"""
@@ -962,7 +910,7 @@ def send_deposited_email(request):
         cheques = ChequeModel.objects.filter(
             id__in=cheque_ids, 
             status='Deposited'
-        ).select_related('deposit')
+        ).select_related('deposit').order_by('-deposit__deposited_at')
         
         if not cheques.exists():
             return JsonResponse({'success': False, 'message': 'No valid cheques found.'})
@@ -971,18 +919,18 @@ def send_deposited_email(request):
         excel_data = []
         for cheque in cheques:
             row = {
-                'Deposited At': cheque.deposit.deposited_at.strftime('%Y-%m-%d %H:%M') if cheque.deposit and cheque.deposit.deposited_at else '',
-                'Deposited Bank': cheque.deposit.bank_name if cheque.deposit else '',
-                'Deposited Branch': cheque.deposit.branch_name if cheque.deposit else '',
                 'Company Name': cheque.company_name,
                 'Cheque No': cheque.cheque_no,
-                'Amount': float(cheque.amount),
+                'Amount (NPR)': float(cheque.amount),
                 'Cheque Date': cheque.cheque_date.strftime('%Y-%m-%d') if cheque.cheque_date else '',
+                'Deposited Date': cheque.deposit.deposited_at.strftime('%Y-%m-%d %H:%M') if cheque.deposit and cheque.deposit.deposited_at else '',
+                'Bank Name': cheque.deposit.bank_name if cheque.deposit else '',
+                'Branch': cheque.deposit.branch_name if cheque.deposit else '',
             }
             excel_data.append(row)
         
         # Calculate totals
-        total_amount = sum(item['Amount'] for item in excel_data)
+        total_amount = sum(item['Amount (NPR)'] for item in excel_data)
         
         # Create Excel file
         output = BytesIO()
@@ -1012,7 +960,7 @@ def send_deposited_email(request):
             })
             number_format = workbook.add_format({
                 'font_size': 10, 'border': 1, 'align': 'right',
-                'valign': 'vcenter', 'num_format': '#,##0.00'
+                'valign': 'vcenter', 'num_format': 'NPR #,##0.00'
             })
             total_label_format = workbook.add_format({
                 'bold': True, 'font_size': 11, 'font_color': 'white',
@@ -1021,17 +969,17 @@ def send_deposited_email(request):
             total_value_format = workbook.add_format({
                 'bold': True, 'font_size': 11, 'font_color': 'white',
                 'bg_color': '#16a34a', 'border': 1, 'align': 'right',
-                'valign': 'vcenter', 'num_format': '₹#,##0.00'
+                'valign': 'vcenter', 'num_format': 'NPR #,##0.00'
             })
             
             # Column widths
-            worksheet.set_column('A:A', 18)  # Deposited At
-            worksheet.set_column('B:B', 22)  # Bank
-            worksheet.set_column('C:C', 18)  # Branch
-            worksheet.set_column('D:D', 28)  # Company
-            worksheet.set_column('E:E', 15)  # Cheque No
-            worksheet.set_column('F:F', 15)  # Amount
-            worksheet.set_column('G:G', 14)  # Cheque Date
+            worksheet.set_column('A:A', 28)  # Company
+            worksheet.set_column('B:B', 15)  # Cheque No
+            worksheet.set_column('C:C', 18)  # Amount
+            worksheet.set_column('D:D', 14)  # Cheque Date
+            worksheet.set_column('E:E', 18)  # Deposited Date
+            worksheet.set_column('F:F', 22)  # Bank
+            worksheet.set_column('G:G', 18)  # Branch
             
             # Title
             worksheet.merge_range('A1:G1', 'DEPOSITED CHEQUES REPORT', title_format)
@@ -1042,8 +990,8 @@ def send_deposited_email(request):
             worksheet.set_row(1, 20)
             
             # Headers
-            headers = ['Deposited At', 'Deposited Bank', 'Deposited Branch', 
-                      'Company Name', 'Cheque No', 'Amount', 'Cheque Date']
+            headers = ['Company Name', 'Cheque No', 'Amount (NPR)', 'Cheque Date', 
+                      'Deposited Date', 'Bank Name', 'Branch']
             for col, header in enumerate(headers):
                 worksheet.write(3, col, header, header_format)
             worksheet.set_row(3, 22)
@@ -1051,23 +999,23 @@ def send_deposited_email(request):
             # Data rows
             row_num = 4
             for item in excel_data:
-                worksheet.write(row_num, 0, item['Deposited At'], date_format)
-                worksheet.write(row_num, 1, item['Deposited Bank'], cell_format)
-                worksheet.write(row_num, 2, item['Deposited Branch'], cell_format)
-                worksheet.write(row_num, 3, item['Company Name'], cell_format)
-                worksheet.write(row_num, 4, item['Cheque No'], cell_format)
-                worksheet.write(row_num, 5, item['Amount'], number_format)
-                worksheet.write(row_num, 6, item['Cheque Date'], date_format)
+                worksheet.write(row_num, 0, item['Company Name'], cell_format)
+                worksheet.write(row_num, 1, item['Cheque No'], cell_format)
+                worksheet.write(row_num, 2, item['Amount (NPR)'], number_format)
+                worksheet.write(row_num, 3, item['Cheque Date'], date_format)
+                worksheet.write(row_num, 4, item['Deposited Date'], date_format)
+                worksheet.write(row_num, 5, item['Bank Name'], cell_format)
+                worksheet.write(row_num, 6, item['Branch'], cell_format)
                 worksheet.set_row(row_num, 18)
                 row_num += 1
             
             # Total row
             worksheet.write(row_num, 0, '', total_label_format)
-            worksheet.write(row_num, 1, '', total_label_format)
-            worksheet.write(row_num, 2, '', total_label_format)
+            worksheet.write(row_num, 1, 'TOTAL:', total_label_format)
+            worksheet.write(row_num, 2, total_amount, total_value_format)
             worksheet.write(row_num, 3, '', total_label_format)
-            worksheet.write(row_num, 4, 'TOTAL:', total_label_format)
-            worksheet.write(row_num, 5, total_amount, total_value_format)
+            worksheet.write(row_num, 4, '', total_label_format)
+            worksheet.write(row_num, 5, '', total_label_format)
             worksheet.write(row_num, 6, '', total_label_format)
             worksheet.set_row(row_num, 22)
             
@@ -1077,7 +1025,7 @@ def send_deposited_email(request):
         output.seek(0)
         
         # Prepare email
-        subject = f'Deposited Cheques Data - {datetime.now().strftime("%Y-%m-%d")}'
+        subject = f'Deposited Cheques Report - {datetime.now().strftime("%Y-%m-%d")}'
         
         body = f"""
 Dear Sir/Madam,
@@ -1086,7 +1034,7 @@ Please find attached the deposited cheques report.
 
 Summary:
 - Total Cheques: {len(excel_data)}
-- Total Amount: ₹{total_amount:,.2f}
+- Total Amount: NPR {total_amount:,.2f}
 - Generated On: {datetime.now().strftime("%Y-%m-%d %H:%M")}
 
 This is an auto-generated email from the Cheque Management System.
@@ -1124,6 +1072,7 @@ Cheque Management System
         return JsonResponse({'success': False, 'message': str(e)})
 
 
+# !============================ API to get selected cheques data for preview before emailing 
 @login_required(login_url='/auth/login/')
 def get_selected_cheques_data(request):
     """API endpoint to get data of selected cheques for preview"""
@@ -1141,7 +1090,7 @@ def get_selected_cheques_data(request):
         cheques = ChequeModel.objects.filter(
             id__in=cheque_ids, 
             status='Deposited'
-        ).select_related('deposit')
+        ).select_related('deposit').order_by('-deposit__deposited_at')
         
         cheque_data = []
         total_amount = 0
@@ -1168,3 +1117,405 @@ def get_selected_cheques_data(request):
         
     except Exception as e:
         return JsonResponse({'success': False, 'message': str(e)})
+#!===================================== END OF DEPOSITED CHEQUES ===================================================== 
+# ?===================================================================================================================
+
+
+
+# !=========================================== KHAJA VIEWS ===========================================!
+
+
+#!================================= KHAJA MAIN VIEW ===========================================! 
+@login_required(login_url='/auth/login/')
+def khaja_list(request):
+    """Main Khaja page with date filter and pagination"""
+    
+    # Get filter parameters
+    date_from = request.GET.get('date_from', '')
+    date_to = request.GET.get('date_to', '')
+    
+    # Default to current date if not provided
+    current_date = date.today().strftime('%Y-%m-%d')
+    if not date_from:
+        date_from = current_date
+    if not date_to:
+        date_to = current_date
+    
+    # Base queryset
+    bills = KhajaBill.objects.prefetch_related('items')
+    
+    # Apply date filters
+    if date_from:
+        bills = bills.filter(date__gte=date_from)
+    if date_to:
+        bills = bills.filter(date__lte=date_to)
+    
+    # Order by date descending
+    bills = bills.order_by('-date', '-created_at')
+    
+    # Calculate totals for filtered data
+    total_count = bills.count()
+    total_amount = sum(bill.total_amount for bill in bills)
+    
+    # Pagination
+    paginator = Paginator(bills, 15)
+    page_number = request.GET.get('page', 1)
+    page_obj = paginator.get_page(page_number)
+    
+    current = page_obj.number
+    total_pages = paginator.num_pages
+    start_p = max(current - 2, 1)
+    end_p = min(current + 2, total_pages)
+    page_range = range(start_p, end_p + 1)
+    
+    start_index = (page_obj.number - 1) * paginator.per_page
+    
+    context = {
+        'page_obj': page_obj,
+        'page_range': page_range,
+        'start_index': start_index,
+        'total_count': total_count,
+        'total_amount': total_amount,
+        'current_date': current_date,
+        'filter_date_from': date_from,
+        'filter_date_to': date_to,
+    }
+    
+    return render(request, 'Khaja/khaja.html', context)
+
+
+# !================================= KHAJA PRINT VIEW ===========================================!
+@login_required(login_url='/auth/login/')
+def khaja_print(request, pk):
+    """Print view for Khaja bill - thermal receipt format"""
+    try:
+        bill = KhajaBill.objects.prefetch_related('items').get(pk=pk)
+        items = bill.items.all()
+        
+        # Convert amount to words
+        def number_to_words(num):
+            """Convert number to words for Nepali Rupees"""
+            ones = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine',
+                    'Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen',
+                    'Seventeen', 'Eighteen', 'Nineteen']
+            tens = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety']
+            
+            if num == 0:
+                return 'Zero'
+            
+            def words(n):
+                if n < 20:
+                    return ones[n]
+                elif n < 100:
+                    return tens[n // 10] + ('' if n % 10 == 0 else ' ' + ones[n % 10])
+                elif n < 1000:
+                    return ones[n // 100] + ' Hundred' + ('' if n % 100 == 0 else ' ' + words(n % 100))
+                elif n < 100000:
+                    return words(n // 1000) + ' Thousand' + ('' if n % 1000 == 0 else ' ' + words(n % 1000))
+                elif n < 10000000:
+                    return words(n // 100000) + ' Lakh' + ('' if n % 100000 == 0 else ' ' + words(n % 100000))
+                else:
+                    return words(n // 10000000) + ' Crore' + ('' if n % 10000000 == 0 else ' ' + words(n % 10000000))
+            
+            rupees = int(num)
+            paisa = int(round((num - rupees) * 100))
+            
+            result = 'Rupees ' + words(rupees)
+            if paisa > 0:
+                result += ' and ' + words(paisa) + ' Paisa'
+            result += ' Only'
+            
+            return result
+        
+        amount_in_words = number_to_words(float(bill.total_amount))
+        
+        context = {
+            'bill': bill,
+            'items': items,
+            'amount_in_words': amount_in_words,
+        }
+        
+        return render(request, 'Khaja/khaja_print.html', context)
+    
+    except KhajaBill.DoesNotExist:
+        from django.http import Http404
+        raise Http404("Bill not found")
+
+#!================================= KHAJA CRUD API VIEWS ===========================================! 
+@login_required(login_url='/auth/login/')
+def khaja_create(request):
+    """Create a new Khaja bill with items"""
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            bill_date = data.get('date')
+            items = data.get('items', [])
+            
+            if not bill_date:
+                return JsonResponse({'success': False, 'message': 'Date is required.'})
+            
+            if not items or len(items) == 0:
+                return JsonResponse({'success': False, 'message': 'At least one item is required.'})
+            
+            # Create bill
+            bill = KhajaBill.objects.create(date=bill_date)
+            
+            # Create items
+            for item in items:
+                qty = Decimal(str(item.get('qty', 0)))
+                rate = Decimal(str(item.get('rate', 0)))
+                amount = qty * rate
+                
+                KhajaBillItem.objects.create(
+                    bill=bill,
+                    particular=item.get('particular', ''),
+                    qty=qty,
+                    rate=rate,
+                    amount=amount
+                )
+            
+            return JsonResponse({'success': True, 'message': 'Bill created successfully.'})
+        except Exception as e:
+            return JsonResponse({'success': False, 'message': str(e)})
+    
+    return JsonResponse({'success': False, 'message': 'Invalid request.'})
+
+
+# !================================= KHAJA UPDATE API VIEW ===========================================!
+@login_required(login_url='/auth/login/')
+def khaja_update(request, pk):
+    """Update an existing Khaja bill"""
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            bill = KhajaBill.objects.get(pk=pk)
+            
+            bill_date = data.get('date')
+            items = data.get('items', [])
+            
+            if not bill_date:
+                return JsonResponse({'success': False, 'message': 'Date is required.'})
+            
+            if not items or len(items) == 0:
+                return JsonResponse({'success': False, 'message': 'At least one item is required.'})
+            
+            # Update bill date
+            bill.date = bill_date
+            bill.save()
+            
+            # Delete existing items and recreate
+            bill.items.all().delete()
+            
+            for item in items:
+                qty = Decimal(str(item.get('qty', 0)))
+                rate = Decimal(str(item.get('rate', 0)))
+                amount = qty * rate
+                
+                KhajaBillItem.objects.create(
+                    bill=bill,
+                    particular=item.get('particular', ''),
+                    qty=qty,
+                    rate=rate,
+                    amount=amount
+                )
+            
+            return JsonResponse({'success': True, 'message': 'Bill updated successfully.'})
+        except KhajaBill.DoesNotExist:
+            return JsonResponse({'success': False, 'message': 'Bill not found.'})
+        except Exception as e:
+            return JsonResponse({'success': False, 'message': str(e)})
+    
+    return JsonResponse({'success': False, 'message': 'Invalid request.'})
+
+
+# !================================= KHAJA DELETE API VIEW ===========================================!
+@login_required(login_url='/auth/login/')
+def khaja_delete(request, pk):
+    """Delete a Khaja bill"""
+    if request.method == 'POST':
+        try:
+            bill = KhajaBill.objects.get(pk=pk)
+            bill.delete()
+            return JsonResponse({'success': True, 'message': 'Bill deleted successfully.'})
+        except KhajaBill.DoesNotExist:
+            return JsonResponse({'success': False, 'message': 'Bill not found.'})
+        except Exception as e:
+            return JsonResponse({'success': False, 'message': str(e)})
+    
+    return JsonResponse({'success': False, 'message': 'Invalid request.'})
+
+
+# !================================= KHAJA DETAIL API VIEW ===========================================!
+@login_required(login_url='/auth/login/')
+def khaja_detail(request, pk):
+    """Get bill details for view/edit modal"""
+    try:
+        bill = KhajaBill.objects.prefetch_related('items').get(pk=pk)
+        
+        items_data = []
+        for item in bill.items.all():
+            items_data.append({
+                'id': item.id,
+                'particular': item.particular,
+                'qty': float(item.qty),
+                'rate': float(item.rate),
+                'amount': float(item.amount),
+            })
+        
+        data = {
+            'id': bill.id,
+            'date': bill.date.strftime('%Y-%m-%d'),
+            'items': items_data,
+            'total_amount': float(bill.total_amount),
+            'created_at': bill.created_at.strftime('%Y-%m-%d %H:%M'),
+        }
+        
+        return JsonResponse({'success': True, 'data': data})
+    except KhajaBill.DoesNotExist:
+        return JsonResponse({'success': False, 'message': 'Bill not found.'})
+    except Exception as e:
+        return JsonResponse({'success': False, 'message': str(e)})
+
+
+# !================================= KHAJA EXPORT EXCEL API VIEW ===========================================!
+@login_required(login_url='/auth/login/')
+def khaja_export_excel(request):
+    """Export filtered Khaja data to Excel"""
+    
+    # Get filter parameters
+    date_from = request.GET.get('date_from', '')
+    date_to = request.GET.get('date_to', '')
+    
+    # Default to current date
+    current_date = date.today().strftime('%Y-%m-%d')
+    if not date_from:
+        date_from = current_date
+    if not date_to:
+        date_to = current_date
+    
+    # Base queryset
+    bills = KhajaBill.objects.prefetch_related('items')
+    
+    if date_from:
+        bills = bills.filter(date__gte=date_from)
+    if date_to:
+        bills = bills.filter(date__lte=date_to)
+    
+    bills = bills.order_by('-date', '-created_at')
+    
+    # Create Excel
+    output = BytesIO()
+    
+    with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+        workbook = writer.book
+        
+        # Formats
+        title_format = workbook.add_format({
+            'bold': True, 'font_size': 18, 'font_color': '#1e1e2f',
+            'align': 'center', 'valign': 'vcenter'
+        })
+        header_format = workbook.add_format({
+            'bold': True, 'font_size': 11, 'font_color': 'white',
+            'bg_color': '#4f46e5', 'border': 1, 'align': 'center', 'valign': 'vcenter'
+        })
+        cell_format = workbook.add_format({
+            'font_size': 10, 'border': 1, 'align': 'left', 'valign': 'vcenter'
+        })
+        number_format = workbook.add_format({
+            'font_size': 10, 'border': 1, 'align': 'right', 'valign': 'vcenter',
+            'num_format': '₹#,##0.00'
+        })
+        date_format = workbook.add_format({
+            'font_size': 10, 'border': 1, 'align': 'center', 'valign': 'vcenter'
+        })
+        total_format = workbook.add_format({
+            'bold': True, 'font_size': 11, 'font_color': 'white',
+            'bg_color': '#1e1e2f', 'border': 1, 'align': 'right', 'valign': 'vcenter',
+            'num_format': '₹#,##0.00'
+        })
+        
+        # Summary Sheet
+        summary_sheet = workbook.add_worksheet('Summary')
+        summary_sheet.set_column('A:A', 8)
+        summary_sheet.set_column('B:B', 15)
+        summary_sheet.set_column('C:C', 40)
+        summary_sheet.set_column('D:D', 18)
+        
+        summary_sheet.merge_range('A1:D1', 'KHAJA BILL SUMMARY', title_format)
+        summary_sheet.set_row(0, 30)
+        
+        summary_sheet.merge_range('A2:D2', f'Date Range: {date_from} to {date_to}', workbook.add_format({
+            'font_size': 11, 'align': 'center', 'font_color': '#6b7280'
+        }))
+        
+        summary_sheet.write('A4', 'SN', header_format)
+        summary_sheet.write('B4', 'Date', header_format)
+        summary_sheet.write('C4', 'Particulars', header_format)
+        summary_sheet.write('D4', 'Amount', header_format)
+        
+        row = 5
+        grand_total = 0
+        for idx, bill in enumerate(bills, 1):
+            particulars = ', '.join([item.particular for item in bill.items.all()])
+            total = float(bill.total_amount)
+            grand_total += total
+            
+            summary_sheet.write(f'A{row}', idx, date_format)
+            summary_sheet.write(f'B{row}', bill.date.strftime('%Y-%m-%d'), date_format)
+            summary_sheet.write(f'C{row}', particulars, cell_format)
+            summary_sheet.write(f'D{row}', total, number_format)
+            row += 1
+        
+        # Total row
+        summary_sheet.write(f'A{row}', '', total_format)
+        summary_sheet.write(f'B{row}', '', total_format)
+        summary_sheet.write(f'C{row}', 'GRAND TOTAL', total_format)
+        summary_sheet.write(f'D{row}', grand_total, total_format)
+        
+        # Detailed Sheet
+        detail_sheet = workbook.add_worksheet('Detailed')
+        detail_sheet.set_column('A:A', 8)
+        detail_sheet.set_column('B:B', 12)
+        detail_sheet.set_column('C:C', 8)
+        detail_sheet.set_column('D:D', 30)
+        detail_sheet.set_column('E:E', 10)
+        detail_sheet.set_column('F:F', 12)
+        detail_sheet.set_column('G:G', 15)
+        
+        detail_sheet.merge_range('A1:G1', 'KHAJA BILL DETAILS', title_format)
+        detail_sheet.set_row(0, 30)
+        
+        detail_sheet.write('A3', 'Bill #', header_format)
+        detail_sheet.write('B3', 'Date', header_format)
+        detail_sheet.write('C3', 'Item #', header_format)
+        detail_sheet.write('D3', 'Particular', header_format)
+        detail_sheet.write('E3', 'Qty', header_format)
+        detail_sheet.write('F3', 'Rate', header_format)
+        detail_sheet.write('G3', 'Amount', header_format)
+        
+        row = 4
+        for bill in bills:
+            item_num = 1
+            for item in bill.items.all():
+                detail_sheet.write(f'A{row}', bill.id, date_format)
+                detail_sheet.write(f'B{row}', bill.date.strftime('%Y-%m-%d'), date_format)
+                detail_sheet.write(f'C{row}', item_num, date_format)
+                detail_sheet.write(f'D{row}', item.particular, cell_format)
+                detail_sheet.write(f'E{row}', float(item.qty), number_format)
+                detail_sheet.write(f'F{row}', float(item.rate), number_format)
+                detail_sheet.write(f'G{row}', float(item.amount), number_format)
+                row += 1
+                item_num += 1
+    
+    output.seek(0)
+    filename = f'Khaja_Report_{datetime.now().strftime("%Y%m%d_%H%M%S")}.xlsx'
+    
+    response = HttpResponse(
+        output.read(),
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    
+    return response
+#!=========================================== END OF KHAJA VIEWS ===========================================!
+# ?=================================================================================================================== 

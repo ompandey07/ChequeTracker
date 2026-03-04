@@ -1,0 +1,741 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ESTIMATE BILL - PRINT</title>
+    <link rel="icon" href="{% static 'Logo.png' %}" />
+    <link href="https://cdn.jsdelivr.net/npm/remixicon@4.3.0/fonts/remixicon.css" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Babylonica&family=Allura&family=Sacramento&family=Mr+Dafoe&family=Alex+Brush&family=Great+Vibes&family=Tangerine:wght@700&display=swap" rel="stylesheet">
+    <style>
+        @import url("https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&display=swap");
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: "Courier Prime", "Courier New", monospace;
+            background: #f5f5f5;
+            line-height: 1.3;
+        }
+
+        .receipt-container {
+            width: 80mm;
+            margin: 20px auto;
+            background: white;
+            padding: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .icon-bar {
+            position: fixed;
+            right: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+            background-color: #f0f0f0;
+            padding: 10px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            z-index: 999;
+        }
+
+        .icon-bar i {
+            font-size: 24px;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+
+        .icon-bar i:hover {
+            transform: scale(1.1);
+        }
+
+        .ri-printer-fill {
+            color: #2196F3;
+        }
+
+        .ri-arrow-left-line {
+            color: #64748b;
+        }
+
+        .dashed-line {
+            border-top: 1px dashed #000;
+            margin: 5px 0;
+        }
+
+        .double-line {
+            border-top: 2px double #000;
+            margin: 5px 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        table td, table th {
+            padding: 2px 0;
+            font-size: 9px;
+        }
+
+        .item-row td:first-child {
+            padding-right: 4px;
+        }
+
+        .text-center {
+            text-align: center;
+        }
+
+        .text-right {
+            text-align: right;
+        }
+
+        .font-bold {
+            font-weight: bold;
+        }
+
+        /* Signature Fonts */
+        .signature-name {
+            color: #1a1a2e;
+            margin-bottom: 3px;
+        }
+        
+        .font-babylonica {
+            font-family: 'Babylonica', cursive;
+            font-size: 28px;
+        }
+        
+        .font-allura {
+            font-family: 'Allura', cursive;
+            font-size: 26px;
+        }
+        
+        .font-sacramento {
+            font-family: 'Sacramento', cursive;
+            font-size: 28px;
+        }
+        
+        .font-mr-dafoe {
+            font-family: 'Mr Dafoe', cursive;
+            font-size: 24px;
+        }
+        
+        .font-alex-brush {
+            font-family: 'Alex Brush', cursive;
+            font-size: 26px;
+        }
+        
+        .font-great-vibes {
+            font-family: 'Great Vibes', cursive;
+            font-size: 24px;
+        }
+        
+        .font-tangerine {
+            font-family: 'Tangerine', cursive;
+            font-size: 32px;
+            font-weight: 700;
+        }
+
+        /* ═══════════════ MODAL STYLES ═══════════════ */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(4px);
+            z-index: 1000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .print-modal {
+            background: #fff;
+            width: 100%;
+            max-width: 420px;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.25);
+            transform: scale(0.9) translateY(20px);
+            opacity: 0;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+        }
+
+        .modal-overlay.active .print-modal {
+            transform: scale(1) translateY(0);
+            opacity: 1;
+        }
+
+        .print-modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 20px 24px;
+            border-bottom: 1px solid #e8e8ec;
+        }
+
+        .print-modal-header h3 {
+            font-size: 18px;
+            font-weight: 700;
+            color: #1a1a2e;
+            font-family: 'Inter', system-ui, sans-serif;
+        }
+
+        .btn-close-modal {
+            width: 36px;
+            height: 36px;
+            background: #f1f5f9;
+            border: none;
+            font-size: 20px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #64748b;
+            transition: all 0.2s ease;
+        }
+
+        .btn-close-modal:hover {
+            background: #fee2e2;
+            color: #ef4444;
+        }
+
+        .print-modal-body {
+            padding: 24px;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-group:last-of-type {
+            margin-bottom: 8px;
+        }
+
+        .form-group label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            color: #1a1a2e;
+            margin-bottom: 10px;
+            font-family: 'Inter', system-ui, sans-serif;
+        }
+
+        .form-group label svg {
+            width: 16px;
+            height: 16px;
+            color: #4f46e5;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            height: 48px;
+            padding: 0 16px;
+            font-size: 14px;
+            color: #1a1a2e;
+            background: #f8f9fb;
+            border: 2px solid #e8e8ec;
+            outline: none;
+            font-family: inherit;
+            transition: all 0.2s ease;
+        }
+
+        .form-group select {
+            cursor: pointer;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 16px center;
+            padding-right: 48px;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            border-color: #4f46e5;
+            background: #fff;
+            box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.1);
+        }
+
+        .form-group input::placeholder {
+            color: #94a3b8;
+        }
+
+        .form-hint {
+            font-size: 11px;
+            color: #94a3b8;
+            margin-top: 12px;
+            font-family: 'Inter', system-ui, sans-serif;
+        }
+
+        /* Signature Preview */
+        .signature-preview-container {
+            margin-top: 20px;
+            display: none;
+        }
+
+        .signature-preview-container.active {
+            display: block;
+        }
+
+        .signature-preview-container > label {
+            display: block;
+            font-size: 12px;
+            font-weight: 600;
+            color: #64748b;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-family: 'Inter', system-ui, sans-serif;
+        }
+
+        .signature-preview-box {
+            background: linear-gradient(135deg, #fafafa 0%, #f5f5f5 100%);
+            border: 2px dashed #e8e8ec;
+            min-height: 80px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .signature-preview-text {
+            font-size: 36px;
+            color: #1a1a2e;
+            text-align: center;
+            padding: 16px;
+            transition: opacity 0.3s ease;
+        }
+
+        .signature-preview-spinner {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.9);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+        }
+
+        .signature-preview-spinner.active {
+            display: flex;
+        }
+
+        .preview-spinner {
+            width: 24px;
+            height: 24px;
+            border: 3px solid #e8e8ec;
+            border-top-color: #4f46e5;
+            border-radius: 50%;
+            animation: spin 0.6s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .print-modal-footer {
+            padding: 20px 24px;
+            border-top: 1px solid #e8e8ec;
+            display: flex;
+            gap: 12px;
+            background: #f8f9fb;
+        }
+
+        .btn-modal {
+            flex: 1;
+            height: 48px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.2s ease;
+            border: none;
+            font-family: 'Inter', system-ui, sans-serif;
+        }
+
+        .btn-modal svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        .btn-cancel {
+            background: #fff;
+            color: #64748b;
+            border: 2px solid #e8e8ec;
+        }
+
+        .btn-cancel:hover {
+            background: #f8f9fb;
+            color: #1a1a2e;
+            border-color: #d1d5db;
+        }
+
+        .btn-print-confirm {
+            background: linear-gradient(135deg, #8b5cf6 0%, #a78bfa 100%);
+            color: #fff;
+        }
+
+        .btn-print-confirm:hover {
+            opacity: 0.9;
+        }
+
+        /* Font preview classes */
+        .preview-font-babylonica { font-family: 'Babylonica', cursive; }
+        .preview-font-allura { font-family: 'Allura', cursive; }
+        .preview-font-sacramento { font-family: 'Sacramento', cursive; }
+        .preview-font-mr-dafoe { font-family: 'Mr Dafoe', cursive; }
+        .preview-font-alex-brush { font-family: 'Alex Brush', cursive; }
+        .preview-font-great-vibes { font-family: 'Great Vibes', cursive; }
+        .preview-font-tangerine { font-family: 'Tangerine', cursive; font-weight: 700; }
+
+        @media print {
+            body {
+                background: white;
+                margin: 0;
+                padding: 0;
+            }
+
+            .receipt-container {
+                width: 80mm;
+                margin: 0;
+                box-shadow: none;
+                padding: 3mm;
+            }
+
+            .icon-bar,
+            .modal-overlay {
+                display: none !important;
+            }
+
+            @page {
+                size: 80mm auto;
+                margin: 0;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="receipt-container">
+        <!-- Header -->
+        <div class="text-center" style="margin-bottom: 8px;">
+            <h1 style="font-size: 14px; font-weight: bold; margin-bottom: 3px;">ESTIMATE BILL</h1>
+        </div>
+
+        <div class="double-line"></div>
+
+        <!-- Bill Details -->
+        <div style="font-size: 9px; margin-bottom: 5px;">
+            <table style="width: 100%;">
+                <tr>
+                    <td>Date</td>
+                    <td style="width: 10px;">:</td>
+                    <td>{{ bill.date|date:"M d, Y" }}</td>
+                </tr>
+            </table>
+        </div>
+
+        <div class="double-line"></div>
+
+        <!-- Items Table -->
+        <table style="margin-bottom: 5px;">
+            <thead>
+                <tr style="border-bottom: 1px solid #000;">
+                    <th style="text-align: left; padding: 3px 0; font-size: 8px; font-weight: bold; width: 25px;">SN</th>
+                    <th style="text-align: left; padding: 3px 0; font-size: 9px; font-weight: bold;">PARTICULAR</th>
+                    <th style="text-align: center; padding: 3px 0; font-size: 9px; font-weight: bold; width: 35px;">QTY</th>
+                    <th style="text-align: right; padding: 3px 0; font-size: 9px; font-weight: bold; width: 45px;">RATE</th>
+                    <th style="text-align: right; padding: 3px 0; font-size: 9px; font-weight: bold; width: 50px;">AMT</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in items %}
+                <tr class="item-row">
+                    <td style="padding: 3px 0; font-size: 8px;">{{ forloop.counter }}</td>
+                    <td style="padding: 3px 0;">{{ item.particular }}</td>
+                    <td style="text-align: center; padding: 3px 0;">{{ item.qty }}</td>
+                    <td style="text-align: right; padding: 3px 0;">{{ item.rate|floatformat:2 }}</td>
+                    <td style="text-align: right; padding: 3px 0;">{{ item.amount|floatformat:2 }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5" style="text-align: center; padding: 10px 0; color: #666;">No items</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <div class="double-line"></div>
+
+        <!-- Total -->
+        <table style="font-size: 11px; font-weight: bold; margin-bottom: 5px;">
+            <tr>
+                <td style="padding: 3px 0;">TOTAL</td>
+                <td style="width: 10px;">:</td>
+                <td style="text-align: right; padding: 3px 0; font-size: 12px;">NPR {{ bill.total_amount|floatformat:2 }}</td>
+            </tr>
+        </table>
+
+        <div class="dashed-line"></div>
+
+        <!-- Amount in Words -->
+        <div style="font-size: 8px; margin-bottom: 5px;">
+            <p style="margin-bottom: 2px; font-weight: bold;">In Words:</p>
+            <p style="font-style: italic;">{{ amount_in_words }}</p>
+        </div>
+
+        <div class="dashed-line"></div>
+
+        <!-- Footer -->
+        <div class="text-center" style="font-size: 10px; margin-top: 10px;">
+            <p style="font-size: 7px; color: #666;">Printed: <span id="currentDateTime"></span></p>
+        </div>
+
+        <!-- Signature Section - Dynamic -->
+        <div id="signatureSection" style="margin-top: 30px; text-align: center; display: none;">
+            <div class="signature-name" id="printSignatureName"></div>
+            <div style="border-top: 1px solid #000; width: 120px; margin: 0 auto; padding-top: 5px; font-size: 9px;">Prepared By</div>
+        </div>
+    </div>
+
+    <!-- Icon bar -->
+    <div class="icon-bar">
+        <i class="ri-arrow-left-line" title="Go Back" onclick="window.history.back()"></i>
+        <i class="ri-printer-fill" title="Print" onclick="openPrintModal()"></i>
+    </div>
+
+    <!-- ═══════════════ PRINT MODAL ═══════════════ -->
+    <div class="modal-overlay" id="printModalOverlay">
+        <div class="print-modal">
+            <div class="print-modal-header">
+                <h3>Print Settings</h3>
+                <button type="button" class="btn-close-modal" onclick="closePrintModal()">×</button>
+            </div>
+            <div class="print-modal-body">
+                <div class="form-group">
+                    <label>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/>
+                            <circle cx="12" cy="7" r="4"/>
+                        </svg>
+                        Prepared By (Optional)
+                    </label>
+                    <input type="text" id="preparedByName" placeholder="Enter name for signature..." oninput="updatePreview()">
+                </div>
+                
+                <div class="form-group" id="fontSelectGroup" style="display: none;">
+                    <label>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="4 7 4 4 20 4 20 7"/>
+                            <line x1="9" y1="20" x2="15" y2="20"/>
+                            <line x1="12" y1="4" x2="12" y2="20"/>
+                        </svg>
+                        Signature Font
+                    </label>
+                    <select id="signatureFont" onchange="updatePreview()">
+                        <option value="babylonica">Babylonica</option>
+                        <option value="allura">Allura (Cintarini Style)</option>
+                        <option value="sacramento">Sacramento (Amsterdam Style)</option>
+                        <option value="mr-dafoe">Mr Dafoe (Whispering Style)</option>
+                        <option value="alex-brush">Alex Brush (Modernline Style)</option>
+                        <option value="great-vibes">Great Vibes (Signatie Style)</option>
+                        <option value="tangerine">Tangerine (Palisade Style)</option>
+                    </select>
+                </div>
+                
+                <!-- Signature Preview -->
+                <div class="signature-preview-container" id="signaturePreviewContainer">
+                    <label>Preview</label>
+                    <div class="signature-preview-box">
+                        <div class="signature-preview-spinner" id="signatureSpinner">
+                            <div class="preview-spinner"></div>
+                        </div>
+                        <div class="signature-preview-text" id="signaturePreview"></div>
+                    </div>
+                </div>
+                
+                <p class="form-hint">Leave name empty to print without signature</p>
+            </div>
+            <div class="print-modal-footer">
+                <button class="btn-modal btn-cancel" onclick="closePrintModal()">Cancel</button>
+                <button class="btn-modal btn-print-confirm" onclick="confirmPrint()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="6 9 6 2 18 2 18 9"/>
+                        <path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/>
+                        <rect x="6" y="14" width="12" height="8"/>
+                    </svg>
+                    Print Now
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Set current date time
+        document.addEventListener("DOMContentLoaded", function () {
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, "0");
+            const day = String(now.getDate()).padStart(2, "0");
+
+            let hours = now.getHours();
+            const minutes = String(now.getMinutes()).padStart(2, "0");
+            const seconds = String(now.getSeconds()).padStart(2, "0");
+
+            const ampm = hours >= 12 ? "PM" : "AM";
+            hours = hours % 12 || 12;
+
+            const timeString = `${hours}:${minutes}:${seconds} ${ampm}`;
+            const formattedDate = `${year}-${month}-${day} ${timeString}`;
+
+            document.getElementById("currentDateTime").innerHTML = formattedDate;
+        });
+
+        // Modal functions
+        const modalOverlay = document.getElementById('printModalOverlay');
+        const preparedByInput = document.getElementById('preparedByName');
+        const fontSelect = document.getElementById('signatureFont');
+        const fontSelectGroup = document.getElementById('fontSelectGroup');
+        const previewContainer = document.getElementById('signaturePreviewContainer');
+        const previewText = document.getElementById('signaturePreview');
+        const spinner = document.getElementById('signatureSpinner');
+        const signatureSection = document.getElementById('signatureSection');
+        const printSignatureName = document.getElementById('printSignatureName');
+
+        // Font class mapping
+        const fontClasses = {
+            'babylonica': 'preview-font-babylonica',
+            'allura': 'preview-font-allura',
+            'sacramento': 'preview-font-sacramento',
+            'mr-dafoe': 'preview-font-mr-dafoe',
+            'alex-brush': 'preview-font-alex-brush',
+            'great-vibes': 'preview-font-great-vibes',
+            'tangerine': 'preview-font-tangerine'
+        };
+
+        const printFontClasses = {
+            'babylonica': 'font-babylonica',
+            'allura': 'font-allura',
+            'sacramento': 'font-sacramento',
+            'mr-dafoe': 'font-mr-dafoe',
+            'alex-brush': 'font-alex-brush',
+            'great-vibes': 'font-great-vibes',
+            'tangerine': 'font-tangerine'
+        };
+
+        function openPrintModal() {
+            modalOverlay.classList.add('active');
+            preparedByInput.focus();
+        }
+
+        function closePrintModal() {
+            modalOverlay.classList.remove('active');
+        }
+
+        function updatePreview() {
+            const name = preparedByInput.value.trim();
+            const font = fontSelect.value;
+
+            if (name) {
+                fontSelectGroup.style.display = 'block';
+                previewContainer.classList.add('active');
+
+                // Show spinner
+                spinner.classList.add('active');
+                previewText.style.opacity = '0';
+
+                // Simulate loading
+                setTimeout(() => {
+                    // Remove all font classes
+                    Object.values(fontClasses).forEach(cls => {
+                        previewText.classList.remove(cls);
+                    });
+
+                    // Add selected font class
+                    previewText.classList.add(fontClasses[font]);
+                    previewText.textContent = name;
+
+                    // Hide spinner
+                    spinner.classList.remove('active');
+                    previewText.style.opacity = '1';
+                }, 300);
+            } else {
+                fontSelectGroup.style.display = 'none';
+                previewContainer.classList.remove('active');
+            }
+        }
+
+        function confirmPrint() {
+            const name = preparedByInput.value.trim();
+            const font = fontSelect.value;
+
+            if (name) {
+                // Update signature section
+                signatureSection.style.display = 'block';
+                
+                // Remove all font classes
+                Object.values(printFontClasses).forEach(cls => {
+                    printSignatureName.classList.remove(cls);
+                });
+                
+                // Add selected font class
+                printSignatureName.classList.add('signature-name');
+                printSignatureName.classList.add(printFontClasses[font]);
+                printSignatureName.textContent = name;
+            } else {
+                signatureSection.style.display = 'none';
+            }
+
+            // Close modal
+            closePrintModal();
+
+            // Wait for modal to close then print
+            setTimeout(() => {
+                window.print();
+            }, 300);
+        }
+
+        // Close modal on overlay click
+        modalOverlay.addEventListener('click', function(e) {
+            if (e.target === modalOverlay) {
+                closePrintModal();
+            }
+        });
+
+        // Close modal on Escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && modalOverlay.classList.contains('active')) {
+                closePrintModal();
+            }
+            // Enter key to confirm print
+            if (e.key === 'Enter' && modalOverlay.classList.contains('active')) {
+                confirmPrint();
+            }
+        });
+    </script>
+</body>
+</html>

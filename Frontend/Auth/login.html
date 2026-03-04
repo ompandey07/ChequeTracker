@@ -4,101 +4,249 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login — Admin Panel</title>
+    <title>Login — Cheque Tracker</title>
+    <link rel="shortcut icon" href="{% static "Logo.png" %}" type="image/x-icon">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
-        /* ── RESET ── */
         *, *::before, *::after {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
 
-        /* ── BASE ── */
         html, body {
             height: 100%;
-            font-family: 'Segoe UI', Inter, system-ui, -apple-system, sans-serif;
-            background: #f5f6fa;
-            color: #1e1e2f;
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background: #ffffff;
+            color: #1a1a2e;
+            line-height: 1.5;
         }
 
-        /* ── LAYOUT ── */
-        .login-wrapper {
+        /* ═══════════════ MAIN LAYOUT ═══════════════ */
+        .login-container {
+            min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
-            min-height: 100vh;
-            padding: 24px;
+            padding: 40px 20px;
         }
 
+        /* ═══════════════ LOGIN CARD ═══════════════ */
         .login-card {
+            display: flex;
+            background: #fff;
+            border-radius: 24px;
+            box-shadow: 0 25px 80px rgba(0, 0, 0, 0.08),
+                        0 10px 30px rgba(0, 0, 0, 0.05);
+            overflow: hidden;
+            max-width: 900px;
             width: 100%;
-            max-width: 420px;
-            background: #ffffff;
-            border: 1px solid #e0e0e0;
-            border-radius: 8px;
-            padding: 48px 36px 40px;
+            border: 1px solid #e8e8ec;
+            animation: cardAppear 0.6s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
-        /* ── HEADER ── */
-        .login-header {
-            text-align: center;
-            margin-bottom: 36px;
+        @keyframes cardAppear {
+            from {
+                opacity: 0;
+                transform: translateY(30px) scale(0.95);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
         }
 
-        .login-header .logo-icon {
-            width: 52px;
-            height: 52px;
-            background: #1e1e2f;
-            color: #fff;
-            border-radius: 12px;
-            display: inline-flex;
+        /* ═══════════════ LEFT PANEL (LOGO) ═══════════════ */
+        .logo-panel {
+            width: 45%;
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+            display: flex;
+            flex-direction: column;
             align-items: center;
             justify-content: center;
-            font-size: 22px;
-            font-weight: 700;
-            margin-bottom: 16px;
+            padding: 60px 40px;
+            position: relative;
+            overflow: hidden;
         }
 
-        .login-header h1 {
-            font-size: 22px;
-            font-weight: 700;
-            color: #1e1e2f;
-            margin-bottom: 4px;
+        .logo-panel::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 60%);
+            animation: pulse 15s ease-in-out infinite;
         }
 
-        .login-header p {
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 0.5; }
+            50% { transform: scale(1.1); opacity: 0.3; }
+        }
+
+        .logo-panel::after {
+            content: '';
+            position: absolute;
+            width: 300px;
+            height: 300px;
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 50%;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            animation: ringPulse 4s ease-in-out infinite;
+        }
+
+        @keyframes ringPulse {
+            0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 0.3; }
+            50% { transform: translate(-50%, -50%) scale(1.1); opacity: 0.1; }
+        }
+
+        .logo-content {
+            position: relative;
+            z-index: 1;
+            text-align: center;
+        }
+
+        .logo-image {
+            width: 120px;
+            height: 120px;
+            object-fit: contain;
+            margin-bottom: 24px;
+            filter: drop-shadow(0 10px 30px rgba(0,0,0,0.2));
+            animation: logoFloat 3s ease-in-out infinite;
+        }
+
+        @keyframes logoFloat {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .logo-title {
+            color: #fff;
+            font-size: 28px;
+            font-weight: 800;
+            margin-bottom: 12px;
+            letter-spacing: -0.5px;
+        }
+
+        .logo-subtitle {
+            color: rgba(255,255,255,0.8);
             font-size: 14px;
-            color: #6b7280;
+            max-width: 240px;
+            line-height: 1.6;
         }
 
-        /* ── ERROR MESSAGE (hidden by default) ── */
+        .logo-features {
+            margin-top: 40px;
+            text-align: left;
+        }
+
+        .logo-feature {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: rgba(255,255,255,0.9);
+            font-size: 13px;
+            margin-bottom: 14px;
+        }
+
+        .logo-feature svg {
+            width: 18px;
+            height: 18px;
+            flex-shrink: 0;
+        }
+
+        /* ═══════════════ RIGHT PANEL (FORM) ═══════════════ */
+        .form-panel {
+            width: 55%;
+            padding: 50px 45px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        /* ═══════════════ HEADER ═══════════════ */
+        .form-header {
+            margin-bottom: 32px;
+        }
+
+        .form-header .welcome-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 14px;
+            background: linear-gradient(135deg, #eef2ff, #e0e7ff);
+            color: #4f46e5;
+            font-size: 11px;
+            font-weight: 600;
+            border-radius: 50px;
+            margin-bottom: 20px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .form-header .welcome-tag svg {
+            width: 14px;
+            height: 14px;
+        }
+
+        .form-header h1 {
+            font-size: 26px;
+            font-weight: 800;
+            color: #1a1a2e;
+            margin-bottom: 8px;
+            letter-spacing: -0.5px;
+        }
+
+        .form-header p {
+            font-size: 14px;
+            color: #64748b;
+        }
+
+        /* ═══════════════ ERROR MESSAGE ═══════════════ */
         .error-message {
             display: none;
-            background: #fef2f2;
-            border: 1px solid #fca5a5;
-            color: #b91c1c;
+            background: linear-gradient(135deg, #fef2f2, #fee2e2);
+            border: 1px solid #fecaca;
+            color: #dc2626;
             font-size: 13px;
-            padding: 10px 14px;
-            border-radius: 6px;
-            margin-bottom: 20px;
+            font-weight: 500;
+            padding: 14px 16px;
+            margin-bottom: 24px;
+            border-radius: 12px;
             text-align: center;
+        }
+
+        .error-message::before {
+            content: '⚠';
+            margin-right: 8px;
         }
 
         .error-message.visible {
             display: block;
+            animation: shake 0.4s ease;
         }
 
-        /* ── FORM GROUP ── */
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+
+        /* ═══════════════ FORM GROUP ═══════════════ */
         .form-group {
-            margin-bottom: 20px;
+            margin-bottom: 22px;
         }
 
         .form-group label {
             display: block;
-            font-size: 13px;
+            font-size: 12px;
             font-weight: 600;
-            color: #374151;
-            margin-bottom: 6px;
+            color: #1a1a2e;
+            margin-bottom: 10px;
+            letter-spacing: 0.3px;
         }
 
         .input-wrapper {
@@ -107,41 +255,42 @@
 
         .form-group input {
             width: 100%;
-            height: 44px;
-            padding: 0 14px;
+            height: 52px;
+            padding: 0 18px;
             font-size: 14px;
-            color: #1e1e2f;
-            background: #f9fafb;
-            border: 1px solid #d1d5db;
-            border-radius: 6px;
+            color: #1a1a2e;
+            background: #f8f9fb;
+            border: 2px solid #e8e8ec;
+            border-radius: 12px;
             outline: none;
-            transition: border-color 0.2s ease;
+            transition: border-color 0.25s ease, background 0.25s ease;
+            font-family: inherit;
         }
 
         .form-group input:focus {
-            border-color: #1e1e2f;
+            border-color: #4f46e5;
             background: #fff;
         }
 
         .form-group input.input-error {
             border-color: #ef4444;
+            background: #fef2f2;
         }
 
         .form-group input::placeholder {
-            color: #9ca3af;
+            color: #94a3b8;
         }
 
-        /* password field needs right padding for toggle */
         .input-wrapper input[type="password"],
         .input-wrapper input[type="text"] {
-            padding-right: 46px;
+            padding-right: 52px;
         }
 
-        /* ── EYE TOGGLE ── */
+        /* ═══════════════ EYE TOGGLE ═══════════════ */
         .eye-toggle {
             position: absolute;
             top: 50%;
-            right: 12px;
+            right: 16px;
             transform: translateY(-50%);
             background: none;
             border: none;
@@ -150,12 +299,14 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            color: #6b7280;
+            color: #94a3b8;
             transition: color 0.2s ease;
+            border-radius: 8px;
         }
 
         .eye-toggle:hover {
-            color: #1e1e2f;
+            color: #4f46e5;
+            background: rgba(79, 70, 229, 0.1);
         }
 
         .eye-toggle svg {
@@ -164,35 +315,64 @@
             pointer-events: none;
         }
 
-        /* ── SUBMIT BUTTON ── */
+        /* ═══════════════ SUBMIT BUTTON ═══════════════ */
         .btn-login {
             width: 100%;
-            height: 46px;
+            height: 52px;
             border: none;
-            border-radius: 6px;
-            background: #1e1e2f;
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
             color: #ffffff;
-            font-size: 15px;
+            font-size: 14px;
             font-weight: 600;
+            border-radius: 12px;
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
             gap: 10px;
-            transition: background 0.2s ease, opacity 0.2s ease;
+            transition: all 0.3s ease;
             margin-top: 8px;
+            font-family: inherit;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-login::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .btn-login:hover::before {
+            left: 100%;
         }
 
         .btn-login:hover {
-            background: #2d2d44;
+            transform: translateY(-2px);
+            box-shadow: 0 10px 40px rgba(79, 70, 229, 0.4);
+        }
+
+        .btn-login:active {
+            transform: translateY(0);
         }
 
         .btn-login:disabled {
             opacity: 0.7;
             cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
         }
 
-        /* ── SPINNER ── */
+        .btn-login:disabled::before {
+            display: none;
+        }
+
+        /* ═══════════════ SPINNER ═══════════════ */
         .spinner {
             display: none;
             width: 18px;
@@ -211,122 +391,268 @@
             to { transform: rotate(360deg); }
         }
 
-        /* ── FOOTER ── */
-        .login-footer {
-            text-align: center;
-            margin-top: 28px;
-            font-size: 12px;
-            color: #9ca3af;
+        /* ═══════════════ DIVIDER ═══════════════ */
+        .divider {
+            display: flex;
+            align-items: center;
+            margin: 28px 0;
+            color: #94a3b8;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
         }
 
-        /* ── RESPONSIVE ── */
-        @media (max-width: 480px) {
+        .divider::before,
+        .divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, #e8e8ec, transparent);
+        }
+
+        .divider span {
+            padding: 0 16px;
+            font-weight: 600;
+        }
+
+        /* ═══════════════ FOOTER ═══════════════ */
+        .form-footer {
+            text-align: center;
+            font-size: 12px;
+            color: #94a3b8;
+            font-family: 'Inter', monospace;
+            font-weight: 500;
+        }
+
+        .form-footer .year {
+            color: #4f46e5;
+            font-weight: 700;
+        }
+
+        .form-footer .datetime {
+            color: #64748b;
+        }
+
+        /* ═══════════════ RESPONSIVE ═══════════════ */
+        @media (max-width: 900px) {
             .login-card {
-                padding: 36px 24px 32px;
+                max-width: 450px;
+                flex-direction: column;
+            }
+
+            .logo-panel {
+                width: 100%;
+                padding: 40px 30px;
+            }
+
+            .logo-image {
+                width: 80px;
+                height: 80px;
+            }
+
+            .logo-title {
+                font-size: 22px;
+            }
+
+            .logo-features {
+                display: none;
+            }
+
+            .form-panel {
+                width: 100%;
+                padding: 40px 30px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .login-container {
+                padding: 20px 16px;
+            }
+
+            .login-card {
+                border-radius: 20px;
+            }
+
+            .logo-panel {
+                padding: 30px 24px;
+            }
+
+            .logo-image {
+                width: 60px;
+                height: 60px;
+                margin-bottom: 16px;
+            }
+
+            .logo-title {
+                font-size: 20px;
+            }
+
+            .logo-subtitle {
+                font-size: 13px;
+            }
+
+            .form-panel {
+                padding: 30px 24px;
+            }
+
+            .form-header h1 {
+                font-size: 22px;
+            }
+
+            .form-group input {
+                height: 48px;
+            }
+
+            .btn-login {
+                height: 48px;
             }
         }
     </style>
 </head>
 <body>
 
-<div class="login-wrapper">
+<!-- Main Container -->
+<div class="login-container">
     <div class="login-card">
 
-        <!-- Header -->
-        <div class="login-header">
-            <div class="logo-icon">M</div>
-            <h1>Welcome Back</h1>
-            <p>Sign in to your admin account</p>
+        <!-- Left Panel - Logo -->
+        <div class="logo-panel">
+            <div class="logo-content">
+                <img src="{% static 'Logo.png' %}" alt="Logo" class="logo-image">
+                <h1 class="logo-title">Cheque Tracker</h1>
+                <p class="logo-subtitle">Manage your cheques efficiently with our powerful administration dashboard.</p>
+
+                <div class="logo-features">
+                    <div class="logo-feature">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M22 11.08V12a10 10 0 11-5.93-9.14"/>
+                            <polyline points="22 4 12 14.01 9 11.01"/>
+                        </svg>
+                        <span>Track deposits in real-time</span>
+                    </div>
+                    <div class="logo-feature">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21.21 15.89A10 10 0 118 2.83"/>
+                            <path d="M22 12A10 10 0 0012 2v10z"/>
+                        </svg>
+                        <span>Generate detailed reports</span>
+                    </div>
+                    <div class="logo-feature">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                            <polyline points="22,6 12,13 2,6"/>
+                        </svg>
+                        <span>Email notifications</span>
+                    </div>
+                </div>
+            </div>
         </div>
 
-        <!-- Error Message (hidden) -->
-        <div class="error-message" id="errorMessage"></div>
+        <!-- Right Panel - Form -->
+        <div class="form-panel">
 
-        <!-- Form -->
-        <form id="loginForm" novalidate>
-            {% csrf_token %}
-
-            <!-- Email -->
-            <div class="form-group">
-                <label for="email">Email Address</label>
-                <div class="input-wrapper">
-                    <input
-                        type="email"
-                        id="email"
-                        name="email"
-                        placeholder="you@example.com"
-                        autocomplete="email"
-                        required
-                    >
+            <!-- Header -->
+            <div class="form-header">
+                <div class="welcome-tag">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                        <path d="M7 11V7a5 5 0 0110 0v4"/>
+                    </svg>
+                    Secure Login
                 </div>
+                <h1>Welcome Back</h1>
+                <p>Enter your credentials to access your account</p>
             </div>
 
-            <!-- Password -->
-            <div class="form-group">
-                <label for="password">Password</label>
-                <div class="input-wrapper">
-                    <input
-                        type="password"
-                        id="password"
-                        name="password"
-                        placeholder="Enter your password"
-                        autocomplete="current-password"
-                        required
-                    >
-                    <!-- Eye Toggle Button -->
-                    <button type="button" class="eye-toggle" id="eyeToggle" aria-label="Toggle password visibility">
-                        <!-- Eye Open SVG -->
-                        <svg id="eyeOpen" xmlns="http://www.w3.org/2000/svg" fill="none"
-                             viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-                            <path stroke-linecap="round" stroke-linejoin="round"
-                                  d="M2.036 12.322a1.012 1.012 0 010-.639C3.423
-                                     7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007
-                                     9.963 7.178.07.207.07.431 0
-                                     .639C20.577 16.49 16.64 19.5 12
-                                     19.5c-4.638 0-8.573-3.007-9.964-7.178z"/>
-                            <path stroke-linecap="round" stroke-linejoin="round"
-                                  d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-                        </svg>
-                        <!-- Eye Closed SVG (hidden initially) -->
-                        <svg id="eyeClosed" xmlns="http://www.w3.org/2000/svg" fill="none"
-                             viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"
-                             style="display:none;">
-                            <path stroke-linecap="round" stroke-linejoin="round"
-                                  d="M3.98 8.223A10.477 10.477 0 001.934
-                                     12.222a1.012 1.012 0 000 .639C3.423
-                                     16.49 7.36 19.5 12 19.5c1.658 0
-                                     3.222-.392 4.6-1.09M6.228
-                                     6.228A10.45 10.45 0 0112
-                                     4.5c4.638 0 8.573 3.007 9.963
-                                     7.178.07.207.07.431 0
-                                     .639a10.496 10.496 0
-                                     01-3.315 4.455"/>
-                            <path stroke-linecap="round" stroke-linejoin="round"
-                                  d="M6.228 6.228L3 3m3.228
-                                     3.228l3.65 3.65m7.894
-                                     7.894L21 21m-3.228-3.228l-3.65-3.65m0
-                                     0a3 3 0 10-4.243-4.243m4.242
-                                     4.242L9.88 9.88"/>
-                        </svg>
-                    </button>
+            <!-- Error Message -->
+            <div class="error-message" id="errorMessage"></div>
+
+            <!-- Form -->
+            <form id="loginForm" novalidate>
+                {% csrf_token %}
+
+                <!-- Email -->
+                <div class="form-group">
+                    <label for="email">Email Address</label>
+                    <div class="input-wrapper">
+                        <input
+                            type="email"
+                            id="email"
+                            name="email"
+                            placeholder="you@example.com"
+                            autocomplete="email"
+                            required
+                        >
+                    </div>
                 </div>
+
+                <!-- Password -->
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <div class="input-wrapper">
+                        <input
+                            type="password"
+                            id="password"
+                            name="password"
+                            placeholder="Enter your password"
+                            autocomplete="current-password"
+                            required
+                        >
+                        <button type="button" class="eye-toggle" id="eyeToggle" aria-label="Toggle password visibility">
+                            <svg id="eyeOpen" xmlns="http://www.w3.org/2000/svg" fill="none"
+                                 viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                      d="M2.036 12.322a1.012 1.012 0 010-.639C3.423
+                                         7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007
+                                         9.963 7.178.07.207.07.431 0
+                                         .639C20.577 16.49 16.64 19.5 12
+                                         19.5c-4.638 0-8.573-3.007-9.964-7.178z"/>
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                      d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                            </svg>
+                            <svg id="eyeClosed" xmlns="http://www.w3.org/2000/svg" fill="none"
+                                 viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"
+                                 style="display:none;">
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                      d="M3.98 8.223A10.477 10.477 0 001.934
+                                         12.222a1.012 1.012 0 000 .639C3.423
+                                         16.49 7.36 19.5 12 19.5c1.658 0
+                                         3.222-.392 4.6-1.09M6.228
+                                         6.228A10.45 10.45 0 0112
+                                         4.5c4.638 0 8.573 3.007 9.963
+                                         7.178.07.207.07.431 0
+                                         .639a10.496 10.496 0
+                                         01-3.315 4.455"/>
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                      d="M6.228 6.228L3 3m3.228
+                                         3.228l3.65 3.65m7.894
+                                         7.894L21 21m-3.228-3.228l-3.65-3.65m0
+                                         0a3 3 0 10-4.243-4.243m4.242
+                                         4.242L9.88 9.88"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Submit -->
+                <button type="submit" class="btn-login" id="btnLogin">
+                    <span class="spinner" id="spinner"></span>
+                    <span id="btnText">Sign In</span>
+                </button>
+            </form>
+
+            <div class="divider">
+                <span>Protected Access</span>
             </div>
 
-            <!-- Submit -->
-            <button type="submit" class="btn-login" id="btnLogin">
-                <span class="spinner" id="spinner"></span>
-                <span id="btnText">Sign In</span>
-            </button>
-        </form>
-
-        <div class="login-footer">
-            &copy; 2025 Admin Panel. All rights reserved.
+            <div class="form-footer">
+                <span class="year" id="footerYear"></span> — <span class="datetime" id="footerDateTime"></span>
+            </div>
         </div>
     </div>
 </div>
 
 <script>
-    // ── Elements ──
     const form        = document.getElementById('loginForm');
     const emailInput  = document.getElementById('email');
     const passInput   = document.getElementById('password');
@@ -337,8 +663,29 @@
     const btnText     = document.getElementById('btnText');
     const spinner     = document.getElementById('spinner');
     const errorMsg    = document.getElementById('errorMessage');
+    const footerYear  = document.getElementById('footerYear');
+    const footerDateTime = document.getElementById('footerDateTime');
 
-    // ── Eye Toggle ──
+    // Live DateTime Update
+    function updateDateTime() {
+        const now = new Date();
+        const year = now.getFullYear();
+        
+        const day = String(now.getDate()).padStart(2, '0');
+        const month = now.toLocaleString('en-US', { month: 'short' });
+        const hours = String(now.getHours()).padStart(2, '0');
+        const minutes = String(now.getMinutes()).padStart(2, '0');
+        const seconds = String(now.getSeconds()).padStart(2, '0');
+        
+        footerYear.textContent = year;
+        footerDateTime.textContent = `${day} ${month} ${year} ${hours}:${minutes}:${seconds}`;
+    }
+
+    // Initial call and interval
+    updateDateTime();
+    setInterval(updateDateTime, 1000);
+
+    // Eye Toggle
     eyeToggle.addEventListener('click', () => {
         const isPassword = passInput.type === 'password';
         passInput.type   = isPassword ? 'text' : 'password';
@@ -346,7 +693,7 @@
         eyeClosed.style.display = isPassword ? 'block' : 'none';
     });
 
-    // ── Helpers ──
+    // Helpers
     function showError(msg) {
         errorMsg.textContent = msg;
         errorMsg.classList.add('visible');
@@ -372,11 +719,11 @@
         }
     }
 
-    // ── Clear errors on typing ──
+    // Clear errors on typing
     emailInput.addEventListener('input', hideError);
     passInput.addEventListener('input', hideError);
 
-    // ── Form Submit ──
+    // Form Submit
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
         hideError();
@@ -384,7 +731,6 @@
         const email    = emailInput.value.trim();
         const password = passInput.value;
 
-        // client-side check
         if (!email || !password) {
             showError('Please enter both email and password.');
             return;

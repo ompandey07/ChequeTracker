@@ -1,140 +1,371 @@
+<!-- templates/Report/email_deposited.html -->
+{% load static %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Email Deposited Cheques — Admin Panel</title>
+<title>Email Deposited Cheques — Cheque Tracker</title>
+<link rel="shortcut icon" href="{% static "Logo.png" %}" type="image/x-icon">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<!-- Flatpickr CSS -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/airbnb.css">
 <style>
-/* ═══════════════ RESET ═══════════════ */
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
-html,body{height:100%;font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#f0f1f5;color:#1e1e2f;}
+html{scroll-behavior:smooth;}
+body{
+    min-height:100vh;
+    font-family:'Inter',system-ui,-apple-system,sans-serif;
+    background:#f8f9fb;
+    color:#1a1a2e;
+    line-height:1.5;
+}
 
 /* ═══════════════ SIDEBAR ═══════════════ */
 .sidebar{
-    position:fixed;top:0;left:0;width:240px;height:100vh;
-    background:#1e1e2f;display:flex;flex-direction:column;z-index:100;
+    position:fixed;top:0;left:0;width:260px;height:100vh;
+    background:#ffffff;
+    border-right:1px solid #e8e8ec;
+    display:flex;flex-direction:column;z-index:100;
 }
 .sidebar-brand{
-    height:60px;display:flex;align-items:center;padding:0 20px;
-    border-bottom:1px solid rgba(255,255,255,.08);
+    height:72px;display:flex;align-items:center;padding:0 24px;
+    border-bottom:1px solid #e8e8ec;
 }
 .sidebar-brand .brand-icon{
-    width:32px;height:32px;background:#fff;color:#1e1e2f;
-    display:flex;align-items:center;justify-content:center;
-    font-weight:700;font-size:14px;margin-right:12px;
+    width:40px;height:40px;
+    background:linear-gradient(135deg,#4f46e5 0%,#7c3aed 100%);
+    color:#fff;display:flex;align-items:center;justify-content:center;
+    font-weight:800;font-size:16px;margin-right:14px;
 }
-.sidebar-brand span{color:#fff;font-size:15px;font-weight:600;}
-.sidebar-nav{flex:1;padding:12px 0;overflow-y:auto;}
+.sidebar-brand span{
+    color:#1a1a2e;font-size:17px;font-weight:700;letter-spacing:-0.3px;
+}
+.sidebar-nav{flex:1;padding:20px 0;overflow-y:auto;}
+.sidebar-nav::-webkit-scrollbar{width:0;}
 .nav-item{
-    display:flex;align-items:center;gap:12px;padding:10px 20px;
-    color:rgba(255,255,255,.55);text-decoration:none;font-size:13px;
-    font-weight:500;border-left:3px solid transparent;
-    transition:all .15s ease;
+    display:flex;align-items:center;gap:14px;padding:13px 24px;
+    color:#64748b;text-decoration:none;font-size:13px;
+    font-weight:500;position:relative;transition:all .2s ease;
+    margin:2px 12px;
 }
-.nav-item:hover{color:rgba(255,255,255,.85);background:rgba(255,255,255,.04);}
-.nav-item.active{color:#fff;background:rgba(255,255,255,.08);border-left-color:#fff;}
-.nav-item svg{width:18px;height:18px;flex-shrink:0;}
+.nav-item::before{
+    content:'';position:absolute;left:0;top:50%;transform:translateY(-50%);
+    width:3px;height:0;background:linear-gradient(180deg,#4f46e5,#7c3aed);
+    transition:height .2s ease;
+}
+.nav-item:hover{
+    color:#1a1a2e;
+    background:#f1f5f9;
+}
+.nav-item:hover::before{height:24px;}
+.nav-item.active{
+    color:#4f46e5;
+    background:linear-gradient(90deg,rgba(79,70,229,0.08) 0%,transparent 100%);
+}
+.nav-item.active::before{height:24px;}
+.nav-item svg{width:18px;height:18px;flex-shrink:0;opacity:0.7;}
+.nav-item.active svg{opacity:1;color:#4f46e5;}
 .nav-section{
-    padding:8px 20px 6px;color:rgba(255,255,255,.35);
-    font-size:10px;text-transform:uppercase;letter-spacing:1px;margin-top:8px;
+    padding:20px 24px 10px;color:#94a3b8;
+    font-size:10px;text-transform:uppercase;letter-spacing:1.5px;font-weight:600;
 }
-.sidebar-footer{padding:16px 20px;border-top:1px solid rgba(255,255,255,.08);}
-.user-badge{display:flex;align-items:center;gap:10px;}
+.sidebar-footer{
+    padding:20px 24px;border-top:1px solid #e8e8ec;
+}
+.user-badge{display:flex;align-items:center;gap:12px;}
 .user-badge .avatar{
-    width:32px;height:32px;background:rgba(255,255,255,.15);color:#fff;
-    display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;
+    width:38px;height:38px;
+    background:linear-gradient(135deg,#4f46e5 0%,#7c3aed 100%);
+    color:#fff;display:flex;align-items:center;justify-content:center;
+    font-size:12px;font-weight:700;
 }
-.user-badge .uname{color:rgba(255,255,255,.7);font-size:12px;}
+.user-badge .user-info{flex:1;}
+.user-badge .uname{color:#1a1a2e;font-size:13px;font-weight:600;display:block;}
+.user-badge .urole{color:#94a3b8;font-size:11px;}
 
 /* ═══════════════ MAIN CONTENT ═══════════════ */
-.main-content{margin-left:240px;min-height:100vh;}
+.main-content{margin-left:260px;min-height:100vh;}
 
 .content-header{
-    height:60px;background:#fff;border-bottom:1px solid #e5e7eb;
-    display:flex;align-items:center;justify-content:space-between;padding:0 24px;
+    height:72px;background:rgba(255,255,255,0.95);
+    backdrop-filter:blur(20px);
+    border-bottom:1px solid #e8e8ec;
+    display:flex;align-items:center;justify-content:space-between;
+    padding:0 32px;position:sticky;top:0;z-index:50;
 }
-.content-header h1{font-size:16px;font-weight:600;color:#1e1e2f;}
+.header-left{display:flex;align-items:center;gap:20px;}
+.content-header h1{font-size:20px;font-weight:700;color:#1a1a2e;letter-spacing:-0.3px;}
+.header-breadcrumb{
+    display:flex;align-items:center;gap:8px;
+    font-size:12px;color:#94a3b8;
+}
+.header-breadcrumb span{color:#64748b;}
 .header-actions{display:flex;align-items:center;gap:12px;}
 
 /* ═══════════════ BUTTONS ═══════════════ */
 .btn-send-email{
-    height:38px;padding:0 20px;background:#6366f1;color:#fff;
-    border:none;font-size:13px;font-weight:600;cursor:pointer;
-    display:flex;align-items:center;gap:8px;transition:all .15s ease;
+    height:40px;padding:0 24px;
+    background:linear-gradient(135deg,#4f46e5 0%,#7c3aed 100%);
+    color:#fff;border:none;font-size:13px;font-weight:600;cursor:pointer;
+    display:flex;align-items:center;gap:8px;transition:all .2s ease;
 }
-.btn-send-email:hover{background:#4f46e5;}
-.btn-send-email:disabled{opacity:.5;cursor:not-allowed;}
-.btn-send-email svg{width:16px;height:16px;}
+.btn-send-email:hover{opacity:0.9;transform:translateY(-1px);}
+.btn-send-email:disabled{opacity:.5;cursor:not-allowed;transform:none;}
+.btn-send-email svg{width:18px;height:18px;}
 
 /* ═══════════════ PAGE BODY ═══════════════ */
-.page-body{padding:24px;}
+.page-body{padding:32px;}
+
+/* ═══════════════ FILTER CARD ═══════════════ */
+.filter-card{
+    background:#fff;
+    border:1px solid #e8e8ec;
+    margin-bottom:24px;
+}
+.filter-header{
+    padding:18px 24px;border-bottom:1px solid #e8e8ec;
+    display:flex;align-items:center;justify-content:space-between;
+}
+.filter-header h3{
+    font-size:14px;font-weight:600;color:#1a1a2e;
+    display:flex;align-items:center;gap:10px;
+}
+.filter-header h3 svg{width:18px;height:18px;color:#4f46e5;}
+
+.filter-body{padding:24px;}
+.filter-row{display:grid;grid-template-columns:repeat(4,1fr);gap:20px;}
+.filter-group{display:flex;flex-direction:column;gap:8px;}
+.filter-group label{
+    font-size:12px;font-weight:600;color:#1a1a2e;
+    letter-spacing:0.3px;
+}
+.filter-group input,
+.filter-group select{
+    height:42px;padding:0 14px;font-size:13px;
+    border:1px solid #e8e8ec;background:#f8f9fb;
+    outline:none;transition:all .2s ease;
+    font-family:inherit;
+}
+.filter-group input:focus,
+.filter-group select:focus{
+    border-color:#4f46e5;background:#fff;
+    box-shadow:0 0 0 3px rgba(79,70,229,0.1);
+}
+.filter-group input::placeholder{color:#94a3b8;}
+
+/* Flatpickr Custom Styles */
+.flatpickr-input{cursor:pointer !important;}
+.flatpickr-calendar{
+    font-family:'Inter',sans-serif !important;
+    box-shadow:0 10px 40px rgba(0,0,0,0.15) !important;
+    border:1px solid #e8e8ec !important;
+}
+.flatpickr-day.selected{background:#4f46e5 !important;border-color:#4f46e5 !important;}
+.flatpickr-day:hover{background:#eef2ff !important;}
+
+/* ═══════════════ CUSTOM DROPDOWN ═══════════════ */
+.custom-dropdown{position:relative;}
+.dropdown-input-wrapper{position:relative;}
+.dropdown-input{
+    width:100%;height:42px;padding:0 40px 0 14px;font-size:13px;
+    border:1px solid #e8e8ec;background:#f8f9fb;outline:none;
+    cursor:text;transition:all .2s ease;font-family:inherit;
+}
+.dropdown-input:focus{
+    border-color:#4f46e5;background:#fff;
+    box-shadow:0 0 0 3px rgba(79,70,229,0.1);
+}
+.dropdown-input.active{border-color:#4f46e5;}
+.dropdown-input::placeholder{color:#94a3b8;}
+.dropdown-arrow{
+    position:absolute;right:12px;top:50%;transform:translateY(-50%);
+    width:16px;height:16px;color:#94a3b8;pointer-events:none;
+    transition:transform .2s ease;
+}
+.dropdown-arrow.open{transform:translateY(-50%) rotate(180deg);}
+.dropdown-clear{
+    position:absolute;right:34px;top:50%;transform:translateY(-50%);
+    width:20px;height:20px;background:#e8e8ec;border:none;
+    cursor:pointer;display:none;align-items:center;justify-content:center;
+    font-size:12px;color:#64748b;transition:all .15s ease;
+}
+.dropdown-clear:hover{background:#d1d5db;color:#1a1a2e;}
+.dropdown-clear.visible{display:flex;}
+
+.dropdown-menu{
+    position:absolute;top:100%;left:0;right:0;
+    background:#fff;border:1px solid #e8e8ec;border-top:none;
+    max-height:240px;overflow-y:auto;z-index:50;
+    display:none;box-shadow:0 10px 40px rgba(0,0,0,0.1);
+}
+.dropdown-menu.open{display:block;}
+.dropdown-item{
+    padding:12px 14px;font-size:13px;cursor:pointer;
+    border-bottom:1px solid #f8f9fb;transition:background .1s ease;
+}
+.dropdown-item:hover,.dropdown-item.highlighted{background:#f8f9fb;}
+.dropdown-item.selected{background:#eef2ff;color:#4f46e5;font-weight:500;}
+.dropdown-item:last-child{border-bottom:none;}
+.dropdown-empty{padding:20px 14px;font-size:13px;color:#94a3b8;text-align:center;}
+
+/* ═══════════════ FILTER ACTIONS ═══════════════ */
+.filter-actions{
+    display:flex;gap:12px;justify-content:flex-end;
+    padding-top:20px;margin-top:20px;border-top:1px solid #f1f5f9;
+}
+.btn-filter{
+    height:42px;padding:0 24px;font-size:13px;font-weight:600;
+    border:none;cursor:pointer;display:flex;align-items:center;
+    gap:8px;transition:all .2s ease;
+}
+.btn-apply{
+    background:linear-gradient(135deg,#4f46e5 0%,#7c3aed 100%);
+    color:#fff;
+}
+.btn-apply:hover{opacity:0.9;transform:translateY(-1px);}
+.btn-clear{background:#fff;color:#64748b;border:1px solid #e8e8ec;}
+.btn-clear:hover{background:#f8f9fb;color:#1a1a2e;}
+
+/* ═══════════════ INFO MESSAGE ═══════════════ */
+.info-message{
+    background:linear-gradient(135deg,#eef2ff,#e0e7ff);
+    border:1px solid #c7d2fe;
+    padding:48px 32px;
+    text-align:center;
+    margin-bottom:24px;
+}
+.info-message-icon{
+    width:64px;height:64px;margin:0 auto 20px;
+    background:#fff;display:flex;align-items:center;justify-content:center;
+    border:2px solid #c7d2fe;
+}
+.info-message-icon svg{width:32px;height:32px;color:#4f46e5;}
+.info-message-title{font-size:18px;font-weight:700;color:#1e1b4b;margin-bottom:8px;}
+.info-message-text{font-size:14px;color:#64748b;line-height:1.6;max-width:400px;margin:0 auto;}
 
 /* ═══════════════ SELECTION BAR ═══════════════ */
 .selection-bar{
     display:flex;align-items:center;justify-content:space-between;
-    padding:14px 20px;background:#fff;border:1px solid #e5e7eb;
-    margin-bottom:20px;
+    padding:14px 20px;background:#fff;border:1px solid #e8e8ec;
+    margin-bottom:24px;
 }
-.selection-info{display:flex;align-items:center;gap:16px;}
-.selection-count{
-    font-size:14px;font-weight:600;color:#1e1e2f;
+.selection-info{display:flex;align-items:center;gap:24px;}
+.selection-count{font-size:13px;font-weight:600;color:#1a1a2e;}
+.selection-count span{color:#4f46e5;font-size:16px;font-weight:700;}
+.selection-amount{
+    font-size:13px;color:#10b981;font-weight:600;
+    padding:5px 12px;background:#ecfdf5;
 }
-.selection-count span{color:#6366f1;}
-.selection-amount{font-size:13px;color:#16a34a;font-weight:500;}
+.selection-amount span{font-weight:700;}
 
-.selection-actions{display:flex;align-items:center;gap:12px;}
+.selection-actions{display:flex;align-items:center;gap:10px;}
 .btn-select-all{
-    padding:8px 16px;font-size:12px;font-weight:600;
-    background:#f3f4f6;color:#374151;border:1px solid #d1d5db;
-    cursor:pointer;transition:all .15s ease;
+    padding:8px 16px;font-size:11px;font-weight:600;
+    background:#f8f9fb;color:#64748b;border:1px solid #e8e8ec;
+    cursor:pointer;transition:all .2s ease;
 }
-.btn-select-all:hover{background:#e5e7eb;}
-.btn-select-all.active{background:#1e1e2f;color:#fff;border-color:#1e1e2f;}
+.btn-select-all:hover{background:#f1f5f9;color:#1a1a2e;}
+.btn-select-all.active{
+    background:linear-gradient(135deg,#4f46e5 0%,#7c3aed 100%);
+    color:#fff;border-color:transparent;
+}
 .btn-clear-selection{
-    padding:8px 16px;font-size:12px;font-weight:600;
-    background:#fff;color:#dc2626;border:1px solid #dc2626;
-    cursor:pointer;transition:all .15s ease;
+    padding:8px 16px;font-size:11px;font-weight:600;
+    background:#fff;color:#ef4444;border:1px solid #fecaca;
+    cursor:pointer;transition:all .2s ease;
 }
-.btn-clear-selection:hover{background:#dc2626;color:#fff;}
+.btn-clear-selection:hover{background:#ef4444;color:#fff;border-color:#ef4444;}
+
+/* ═══════════════ RESULT SUMMARY ═══════════════ */
+.result-summary{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:14px 20px;background:#fff;border:1px solid #e8e8ec;
+    margin-bottom:24px;
+}
+.result-info{display:flex;align-items:center;gap:24px;}
+.result-item{display:flex;align-items:center;gap:8px;}
+.result-item .label{font-size:11px;color:#94a3b8;font-weight:500;}
+.result-item .value{font-size:14px;font-weight:700;color:#1a1a2e;}
+.result-item .value.amount{color:#10b981;font-size:16px;}
+
+.active-filters{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.filter-tag{
+    display:flex;align-items:center;gap:6px;
+    padding:5px 10px;background:#eef2ff;color:#4f46e5;
+    font-size:10px;font-weight:600;
+}
+.filter-tag button{
+    background:none;border:none;cursor:pointer;
+    color:#4f46e5;font-size:12px;line-height:1;padding:0;
+}
+.filter-tag button:hover{color:#1e1b4b;}
 
 /* ═══════════════ DATA TABLE ═══════════════ */
-.data-card{background:#fff;border:1px solid #e5e7eb;}
+.data-card{background:#fff;border:1px solid #e8e8ec;}
 .data-card-header{
-    padding:14px 20px;border-bottom:1px solid #e5e7eb;
+    padding:14px 20px;border-bottom:1px solid #e8e8ec;
     display:flex;align-items:center;justify-content:space-between;
 }
-.data-card-header h3{font-size:14px;font-weight:600;color:#1e1e2f;}
+.data-card-header h3{font-size:14px;font-weight:600;color:#1a1a2e;}
 
 .table-wrapper{overflow-x:auto;}
-.data-table{width:100%;border-collapse:collapse;font-size:13px;}
+.data-table{width:100%;border-collapse:collapse;font-size:12px;}
 .data-table th,.data-table td{
-    border:1px solid #d1d5db;padding:10px 12px;text-align:left;
+    padding:10px 12px;text-align:left;
+    border-bottom:1px solid #f1f5f9;
 }
 .data-table thead th{
-    background:#f3f4f6;font-weight:600;font-size:11px;
-    text-transform:uppercase;letter-spacing:.4px;color:#374151;
+    background:#f8f9fb;font-weight:600;font-size:10px;
+    text-transform:uppercase;letter-spacing:1px;color:#64748b;
     white-space:nowrap;position:sticky;top:0;
+    border-bottom:1px solid #e8e8ec;
 }
-.data-table tbody tr{transition:background .1s ease;}
-.data-table tbody tr:hover{background:#f8fafc;}
-.data-table tbody tr.selected{background:#eef2ff;}
+.data-table tbody tr{transition:all .2s ease;}
+.data-table tbody tr:hover{background:#f8f9fb;}
+.data-table tbody tr.selected{
+    background:linear-gradient(90deg,rgba(79,70,229,0.08) 0%,rgba(79,70,229,0.04) 100%);
+}
+.data-table tbody tr:last-child td{border-bottom:none;}
 .data-table td.col-checkbox{width:50px;text-align:center;}
-.data-table td.col-sn{width:50px;text-align:center;color:#6b7280;}
-.data-table td.col-amount{text-align:right;font-variant-numeric:tabular-nums;font-weight:500;}
-.data-table td.col-date{white-space:nowrap;text-align:center;}
-.empty-cell{text-align:center;padding:48px 12px;color:#9ca3af;font-size:14px;}
+.data-table td.col-sn{width:50px;text-align:center;color:#94a3b8;font-weight:500;}
+.data-table td.col-amount{
+    text-align:right;font-variant-numeric:tabular-nums;
+    font-weight:600;color:#10b981;font-family:'Inter',monospace;
+    white-space:nowrap;
+}
+.data-table td.col-date{white-space:nowrap;text-align:center;color:#64748b;font-size:11px;}
+.data-table .company-cell{display:flex;align-items:center;gap:10px;}
+.data-table .company-avatar{
+    width:32px;height:32px;
+    background:linear-gradient(135deg,#ecfdf5,#d1fae5);
+    color:#10b981;font-size:10px;font-weight:700;
+    display:flex;align-items:center;justify-content:center;
+    flex-shrink:0;
+}
+.data-table .company-name{color:#1a1a2e;font-weight:500;font-size:12px;}
+.data-table .cheque-no{
+    font-family:'Inter',monospace;font-size:11px;color:#64748b;
+    background:#f1f5f9;padding:3px 6px;
+}
+.data-table .bank-info{font-size:11px;color:#64748b;}
+.empty-cell{text-align:center;padding:48px 16px;color:#94a3b8;font-size:14px;}
 
 /* Checkbox Styling */
 .checkbox-wrapper{display:flex;align-items:center;justify-content:center;}
 .custom-checkbox{
     width:18px;height:18px;border:2px solid #d1d5db;
     background:#fff;cursor:pointer;position:relative;
-    transition:all .15s ease;display:flex;align-items:center;justify-content:center;
+    transition:all .2s ease;display:flex;align-items:center;justify-content:center;
 }
-.custom-checkbox:hover{border-color:#6366f1;}
-.custom-checkbox.checked{background:#6366f1;border-color:#6366f1;}
+.custom-checkbox:hover{border-color:#4f46e5;}
+.custom-checkbox.checked{
+    background:linear-gradient(135deg,#4f46e5 0%,#7c3aed 100%);
+    border-color:#4f46e5;
+}
 .custom-checkbox.checked::after{
-    content:'';width:5px;height:9px;
+    content:'';width:4px;height:8px;
     border:solid #fff;border-width:0 2px 2px 0;
     transform:rotate(45deg);margin-top:-2px;
 }
@@ -142,54 +373,70 @@ html,body{height:100%;font-family:'Segoe UI',system-ui,-apple-system,sans-serif;
 
 /* Header Checkbox */
 .header-checkbox{
-    width:18px;height:18px;border:2px solid #6b7280;
+    width:18px;height:18px;border:2px solid #94a3b8;
     background:#fff;cursor:pointer;position:relative;
-    transition:all .15s ease;display:flex;align-items:center;justify-content:center;
+    transition:all .2s ease;display:flex;align-items:center;justify-content:center;
 }
-.header-checkbox:hover{border-color:#1e1e2f;}
-.header-checkbox.checked{background:#1e1e2f;border-color:#1e1e2f;}
-.header-checkbox.partial{background:#1e1e2f;border-color:#1e1e2f;}
+.header-checkbox:hover{border-color:#4f46e5;}
+.header-checkbox.checked{
+    background:linear-gradient(135deg,#4f46e5 0%,#7c3aed 100%);
+    border-color:#4f46e5;
+}
+.header-checkbox.partial{
+    background:linear-gradient(135deg,#4f46e5 0%,#7c3aed 100%);
+    border-color:#4f46e5;
+}
 .header-checkbox.checked::after{
-    content:'';width:5px;height:9px;
+    content:'';width:4px;height:8px;
     border:solid #fff;border-width:0 2px 2px 0;
     transform:rotate(45deg);margin-top:-2px;
 }
-.header-checkbox.partial::after{
-    content:'';width:10px;height:2px;background:#fff;
-}
+.header-checkbox.partial::after{content:'';width:8px;height:2px;background:#fff;}
 
 /* Status Badge */
-.badge{display:inline-block;padding:3px 10px;font-size:10px;font-weight:600;text-transform:uppercase;}
-.badge-deposited{background:#dcfce7;color:#16a34a;}
+.badge{
+    display:inline-flex;align-items:center;gap:5px;
+    padding:4px 10px;font-size:9px;font-weight:700;
+    text-transform:uppercase;letter-spacing:0.5px;
+}
+.badge::before{content:'';width:5px;height:5px;}
+.badge-deposited{background:#ecfdf5;color:#10b981;}
+.badge-deposited::before{background:#10b981;}
 
 /* ═══════════════ TABLE FOOTER ═══════════════ */
 .table-footer{
     display:flex;align-items:center;justify-content:space-between;
-    padding:14px 20px;border-top:1px solid #e5e7eb;background:#fafafa;
+    padding:12px 16px;border-top:1px solid #e8e8ec;
+    background:#f8f9fb;
 }
-.table-info{font-size:12px;color:#6b7280;}
-.pagination{display:flex;align-items:center;gap:2px;}
+.table-info{font-size:11px;color:#64748b;font-weight:500;}
+.pagination{display:flex;align-items:center;gap:4px;}
 .page-link{
-    padding:6px 12px;font-size:12px;border:1px solid #d1d5db;
-    text-decoration:none;color:#374151;background:#fff;
-    cursor:pointer;transition:all .15s ease;
+    min-width:28px;height:28px;padding:0 8px;font-size:11px;font-weight:500;
+    border:1px solid #e8e8ec;text-decoration:none;color:#64748b;
+    background:#fff;cursor:pointer;transition:all .2s ease;
+    display:flex;align-items:center;justify-content:center;
 }
-.page-link:hover{background:#f3f4f6;}
-.page-link.current{background:#1e1e2f;color:#fff;border-color:#1e1e2f;}
-.page-link.disabled{color:#c0c0c0;cursor:default;pointer-events:none;}
+.page-link:hover{background:#f1f5f9;color:#1a1a2e;}
+.page-link.current{
+    background:linear-gradient(135deg,#4f46e5,#7c3aed);
+    color:#fff;border-color:transparent;
+}
+.page-link.disabled{color:#d1d5db;cursor:default;pointer-events:none;}
 
 /* ═══════════════ EMAIL MODAL ═══════════════ */
 .modal-backdrop{
     display:none;position:fixed;top:0;left:0;width:100%;height:100%;
-    background:rgba(0,0,0,.5);z-index:500;
+    background:rgba(15,23,42,0.4);backdrop-filter:blur(4px);z-index:500;
     align-items:center;justify-content:center;
 }
 .modal-backdrop.active{display:flex;}
 
 .modal-box{
-    background:#fff;border:1px solid #d1d5db;
-    width:700px;max-width:95%;max-height:90vh;
+    background:#fff;border:1px solid #e8e8ec;
+    width:720px;max-width:95%;max-height:90vh;
     display:flex;flex-direction:column;
+    box-shadow:0 25px 50px rgba(0,0,0,0.15);
     animation:modalIn .2s ease;
 }
 @keyframes modalIn{
@@ -198,137 +445,173 @@ html,body{height:100%;font-family:'Segoe UI',system-ui,-apple-system,sans-serif;
 }
 
 .modal-header{
-    padding:16px 20px;border-bottom:1px solid #e5e7eb;
+    padding:20px 24px;border-bottom:1px solid #e8e8ec;
     display:flex;align-items:center;justify-content:space-between;
-    flex-shrink:0;background:#6366f1;
+    flex-shrink:0;
+    background:linear-gradient(135deg,#4f46e5 0%,#7c3aed 100%);
 }
-.modal-header h3{font-size:15px;font-weight:600;color:#fff;display:flex;align-items:center;gap:10px;}
-.modal-header h3 svg{width:20px;height:20px;}
+.modal-header h3{
+    font-size:16px;font-weight:700;color:#fff;
+    display:flex;align-items:center;gap:12px;
+}
+.modal-header h3 svg{width:22px;height:22px;}
 .btn-close-modal{
-    width:32px;height:32px;background:rgba(255,255,255,.1);border:none;
+    width:36px;height:36px;background:rgba(255,255,255,.15);border:none;
     cursor:pointer;display:flex;align-items:center;justify-content:center;
-    font-size:20px;color:#fff;transition:all .15s ease;
+    font-size:20px;color:#fff;transition:all .2s ease;
 }
-.btn-close-modal:hover{background:rgba(255,255,255,.2);}
+.btn-close-modal:hover{background:rgba(255,255,255,.25);}
 
-.modal-body{padding:20px;overflow-y:auto;flex:1;}
+.modal-body{padding:24px;overflow-y:auto;flex:1;}
 
 /* Email Form */
-.email-form-group{margin-bottom:20px;}
+.email-form-group{margin-bottom:24px;}
 .email-form-group label{
     display:block;font-size:12px;font-weight:600;
-    color:#374151;margin-bottom:8px;
+    color:#1a1a2e;margin-bottom:10px;letter-spacing:0.3px;
 }
-.email-form-group label span{color:#dc2626;}
+.email-form-group label span{color:#ef4444;}
 
 /* Custom Email Dropdown */
 .email-dropdown{position:relative;}
 .email-input-wrapper{position:relative;}
 .email-input{
-    width:100%;height:42px;padding:0 40px 0 14px;font-size:13px;
-    border:1px solid #d1d5db;background:#fff;outline:none;
-    transition:border-color .15s ease;
+    width:100%;height:46px;padding:0 50px 0 16px;font-size:14px;
+    border:1px solid #e8e8ec;background:#f8f9fb;outline:none;
+    transition:all .2s ease;font-family:inherit;
 }
-.email-input:focus{border-color:#6366f1;}
+.email-input:focus{
+    border-color:#4f46e5;background:#fff;
+    box-shadow:0 0 0 3px rgba(79,70,229,0.1);
+}
+.email-input::placeholder{color:#94a3b8;}
 .email-dropdown-btn{
-    position:absolute;right:0;top:0;width:42px;height:42px;
-    background:#f3f4f6;border:none;border-left:1px solid #d1d5db;
+    position:absolute;right:0;top:0;width:46px;height:46px;
+    background:#f1f5f9;border:none;border-left:1px solid #e8e8ec;
     cursor:pointer;display:flex;align-items:center;justify-content:center;
-    transition:background .15s ease;
+    transition:all .2s ease;
 }
-.email-dropdown-btn:hover{background:#e5e7eb;}
-.email-dropdown-btn svg{width:16px;height:16px;color:#6b7280;transition:transform .2s ease;}
+.email-dropdown-btn:hover{background:#e8e8ec;}
+.email-dropdown-btn svg{width:18px;height:18px;color:#64748b;transition:transform .2s ease;}
 .email-dropdown-btn.open svg{transform:rotate(180deg);}
 
 .email-dropdown-menu{
     position:absolute;top:100%;left:0;right:0;
-    background:#fff;border:1px solid #d1d5db;border-top:none;
+    background:#fff;border:1px solid #e8e8ec;border-top:none;
     z-index:10;display:none;
+    box-shadow:0 10px 40px rgba(0,0,0,0.1);
 }
 .email-dropdown-menu.open{display:block;}
 .email-option{
-    padding:12px 14px;font-size:13px;cursor:pointer;
-    border-bottom:1px solid #f3f4f6;transition:background .1s ease;
+    padding:14px 16px;font-size:13px;cursor:pointer;
+    border-bottom:1px solid #f8f9fb;transition:all .15s ease;
 }
-.email-option:hover{background:#f3f4f6;}
+.email-option:hover{background:#f8f9fb;}
 .email-option:last-child{border-bottom:none;}
-.email-option .email-label{font-weight:500;color:#1e1e2f;}
-.email-option .email-address{font-size:12px;color:#6b7280;margin-top:2px;}
+.email-option .email-label{font-weight:600;color:#1a1a2e;margin-bottom:2px;}
+.email-option .email-address{font-size:12px;color:#64748b;}
 
 /* Selected Cheques Preview */
-.preview-section{margin-top:20px;}
+.preview-section{margin-top:24px;}
 .preview-header{
     display:flex;align-items:center;justify-content:space-between;
-    padding:12px 16px;background:#f3f4f6;border:1px solid #e5e7eb;
+    padding:12px 16px;
+    background:linear-gradient(135deg,#f8f9fb,#f1f5f9);
+    border:1px solid #e8e8ec;
 }
-.preview-header h4{font-size:13px;font-weight:600;color:#1e1e2f;}
-.preview-summary{font-size:12px;color:#6b7280;}
-.preview-summary span{font-weight:600;color:#16a34a;}
+.preview-header h4{font-size:12px;font-weight:600;color:#1a1a2e;}
+.preview-summary{font-size:11px;color:#64748b;font-weight:500;}
+.preview-summary span{font-weight:700;color:#10b981;}
 
 .preview-table-wrapper{
-    max-height:250px;overflow-y:auto;
-    border:1px solid #e5e7eb;border-top:none;
+    max-height:240px;overflow-y:auto;
+    border:1px solid #e8e8ec;border-top:none;
 }
-.preview-table{width:100%;border-collapse:collapse;font-size:12px;}
+.preview-table{width:100%;border-collapse:collapse;font-size:11px;}
 .preview-table th,.preview-table td{
-    padding:10px 12px;text-align:left;border-bottom:1px solid #f3f4f6;
+    padding:10px 12px;text-align:left;border-bottom:1px solid #f8f9fb;
 }
-.preview-table thead{background:#fafafa;position:sticky;top:0;}
-.preview-table thead th{font-weight:600;color:#374151;font-size:11px;text-transform:uppercase;}
+.preview-table thead{
+    background:#f8f9fb;position:sticky;top:0;
+    border-bottom:1px solid #e8e8ec;
+}
+.preview-table thead th{
+    font-weight:600;color:#64748b;font-size:9px;
+    text-transform:uppercase;letter-spacing:0.5px;
+}
 .preview-table tbody tr:last-child td{border-bottom:none;}
-.preview-table .col-amount{text-align:right;font-weight:500;}
+.preview-table tbody tr:hover{background:#f8f9fb;}
+.preview-table .col-amount{text-align:right;font-weight:600;color:#10b981;}
 
 /* Modal Footer */
 .modal-footer{
-    padding:16px 20px;border-top:1px solid #e5e7eb;
+    padding:16px 24px;border-top:1px solid #e8e8ec;
     display:flex;align-items:center;justify-content:flex-end;gap:12px;
-    flex-shrink:0;background:#fafafa;
+    flex-shrink:0;background:#f8f9fb;
 }
 .btn-modal{
-    height:40px;padding:0 24px;font-size:13px;font-weight:600;
+    height:42px;padding:0 24px;font-size:13px;font-weight:600;
     border:none;cursor:pointer;display:flex;align-items:center;
-    justify-content:center;gap:8px;transition:all .15s ease;
+    justify-content:center;gap:8px;transition:all .2s ease;
 }
-.btn-modal-cancel{background:#fff;color:#374151;border:1px solid #d1d5db;}
-.btn-modal-cancel:hover{background:#f3f4f6;}
-.btn-modal-primary{background:#6366f1;color:#fff;}
-.btn-modal-primary:hover{background:#4f46e5;}
-.btn-modal-primary:disabled{opacity:.6;cursor:not-allowed;}
+.btn-modal-cancel{background:#fff;color:#64748b;border:1px solid #e8e8ec;}
+.btn-modal-cancel:hover{background:#f1f5f9;color:#1a1a2e;}
+.btn-modal-primary{
+    background:linear-gradient(135deg,#4f46e5 0%,#7c3aed 100%);
+    color:#fff;
+}
+.btn-modal-primary:hover{opacity:0.9;transform:translateY(-1px);}
+.btn-modal-primary:disabled{opacity:.6;cursor:not-allowed;transform:none;}
 
 /* Spinner */
 .spinner{
     display:none;width:16px;height:16px;
     border:2px solid rgba(255,255,255,.3);border-top-color:#fff;
-    border-radius:50%;animation:spin .6s linear infinite;
+    animation:spin .6s linear infinite;
 }
 .spinner.active{display:inline-block;}
 @keyframes spin{to{transform:rotate(360deg);}}
 
 /* ═══════════════ SUCCESS MODAL ═══════════════ */
-.success-modal .modal-header{background:#16a34a;}
+.success-modal .modal-header{
+    background:linear-gradient(135deg,#10b981 0%,#34d399 100%);
+}
 .success-icon{
-    width:60px;height:60px;margin:0 auto 16px;
-    background:#dcfce7;display:flex;align-items:center;
-    justify-content:center;border-radius:50%;
+    width:72px;height:72px;margin:0 auto 20px;
+    background:#ecfdf5;display:flex;align-items:center;
+    justify-content:center;
 }
-.success-icon svg{width:32px;height:32px;color:#16a34a;}
-.success-title{font-size:18px;font-weight:600;color:#1e1e2f;margin-bottom:8px;text-align:center;}
-.success-message{font-size:14px;color:#6b7280;text-align:center;line-height:1.5;}
+.success-icon svg{width:36px;height:36px;color:#10b981;}
+.success-title{font-size:20px;font-weight:700;color:#1a1a2e;margin-bottom:10px;text-align:center;}
+.success-message{font-size:14px;color:#64748b;text-align:center;line-height:1.6;}
 .success-btn{
-    width:100%;height:42px;margin-top:20px;
-    background:#1e1e2f;color:#fff;border:none;
-    font-size:14px;font-weight:600;cursor:pointer;
-    transition:background .15s ease;
+    width:100%;height:48px;margin-top:24px;
+    background:linear-gradient(135deg,#4f46e5 0%,#7c3aed 100%);
+    color:#fff;border:none;font-size:14px;font-weight:600;cursor:pointer;
+    transition:all .2s ease;
 }
-.success-btn:hover{background:#2d2d44;}
+.success-btn:hover{opacity:0.9;}
 
 /* ═══════════════ RESPONSIVE ═══════════════ */
-@media(max-width:900px){
-    .selection-bar{flex-direction:column;gap:12px;align-items:flex-start;}
+@media(max-width:1200px){
+    .filter-row{grid-template-columns:repeat(2,1fr);}
 }
-@media(max-width:768px){
-    .sidebar{width:200px;}
-    .main-content{margin-left:200px;}
+@media(max-width:1000px){
+    .selection-bar{flex-direction:column;gap:12px;align-items:flex-start;}
+    .result-summary{flex-direction:column;gap:12px;align-items:flex-start;}
+}
+@media(max-width:900px){
+    .sidebar{width:72px;}
+    .sidebar-brand span,.nav-item span,.user-badge .user-info,.nav-section{display:none;}
+    .sidebar-brand{justify-content:center;padding:0;}
+    .sidebar-brand .brand-icon{margin:0;}
+    .nav-item{padding:14px;justify-content:center;margin:4px 8px;}
+    .main-content{margin-left:72px;}
+    .content-header{padding:0 20px;}
+    .page-body{padding:20px;}
+}
+@media(max-width:600px){
+    .filter-row{grid-template-columns:1fr;}
     .modal-box{width:95%;}
 }
 </style>
@@ -339,67 +622,80 @@ html,body{height:100%;font-family:'Segoe UI',system-ui,-apple-system,sans-serif;
 <aside class="sidebar">
     <div class="sidebar-brand">
         <div class="brand-icon">M</div>
-        <span>Admin Panel</span>
+        <span>AdminPanel</span>
     </div>
     <nav class="sidebar-nav">
         <a href="{% url 'admin_dashboard' %}" class="nav-item">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
-                <polyline points="9 22 9 12 15 12 15 22"/>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="3" width="7" height="7"/>
+                <rect x="14" y="3" width="7" height="7"/>
+                <rect x="14" y="14" width="7" height="7"/>
+                <rect x="3" y="14" width="7" height="7"/>
             </svg>
-            Dashboard
+            <span>Dashboard</span>
         </a>
-        <div class="nav-section">Cheque Management</div>
+        <div class="nav-section">Cheques</div>
         <a href="{% url 'cheque_list' %}" class="nav-item">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
-                <polyline points="14 2 14 8 20 8"/>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M13 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V9z"/>
+                <polyline points="13 2 13 9 20 9"/>
             </svg>
-            New Cheques
+            <span>New Cheques</span>
         </a>
         <a href="{% url 'cheque_deposited_list' %}" class="nav-item">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                <polyline points="20 6 9 17 4 12"/>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M22 11.08V12a10 10 0 11-5.93-9.14"/>
+                <polyline points="22 4 12 14.01 9 11.01"/>
             </svg>
-            Deposited
+            <span>Deposited</span>
         </a>
         <a href="{% url 'cheque_rejected_list' %}" class="nav-item">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <circle cx="12" cy="12" r="10"/>
                 <line x1="15" y1="9" x2="9" y2="15"/>
                 <line x1="9" y1="9" x2="15" y2="15"/>
             </svg>
-            Rejected
+            <span>Rejected</span>
         </a>
-        <div class="nav-section">System</div>
-        <a href="{% url 'reports_page' %}" class="nav-item">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                <line x1="18" y1="20" x2="18" y2="10"/>
-                <line x1="12" y1="20" x2="12" y2="4"/>
-                <line x1="6" y1="20" x2="6" y2="14"/>
+        <div class="nav-section">Expenses</div>
+        <a href="{% url 'khaja_list' %}" class="nav-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M18 8h1a4 4 0 010 8h-1"/><path d="M2 8h16v9a4 4 0 01-4 4H6a4 4 0 01-4-4V8z"/>
+                <line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/>
             </svg>
-            Reports
+            <span>Khaja</span>
+        </a>
+        <div class="nav-section">Analytics</div>
+        <a href="{% url 'reports_page' %}" class="nav-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21.21 15.89A10 10 0 118 2.83"/>
+                <path d="M22 12A10 10 0 0012 2v10z"/>
+            </svg>
+            <span>Reports</span>
         </a>
         <a href="{% url 'email_deposited_cheques' %}" class="nav-item active">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
                 <polyline points="22,6 12,13 2,6"/>
             </svg>
-            Email Cheques
+            <span>Email Cheques</span>
         </a>
         <a href="{% url 'logout' %}" class="nav-item">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/>
                 <polyline points="16 17 21 12 16 7"/>
                 <line x1="21" y1="12" x2="9" y2="12"/>
             </svg>
-            Logout
+            <span>Logout</span>
         </a>
     </nav>
     <div class="sidebar-footer">
         <div class="user-badge">
             <div class="avatar">{{ request.user.first_name.0 }}{{ request.user.last_name.0 }}</div>
-            <span class="uname">{{ request.user.first_name }} {{ request.user.last_name }}</span>
+            <div class="user-info">
+                <span class="uname">{{ request.user.first_name }} {{ request.user.last_name }}</span>
+                <span class="urole">Administrator</span>
+            </div>
         </div>
     </div>
 </aside>
@@ -407,12 +703,21 @@ html,body{height:100%;font-family:'Segoe UI',system-ui,-apple-system,sans-serif;
 <!-- ═══════════════ MAIN CONTENT ═══════════════ -->
 <main class="main-content">
     <div class="content-header">
-        <h1>Email Deposited Cheques</h1>
+        <div class="header-left">
+            <h1>Email Cheques</h1>
+            <div class="header-breadcrumb">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                    <polyline points="22,6 12,13 2,6"/>
+                </svg>
+                <span>Send Deposited Cheques via Email</span>
+            </div>
+        </div>
         <div class="header-actions">
             <button class="btn-send-email" id="btnOpenEmailModal" disabled>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
-                    <polyline points="22,6 12,13 2,6"/>
+                    <line x1="22" y1="2" x2="11" y2="13"/>
+                    <polygon points="22 2 15 22 11 13 2 9 22 2"/>
                 </svg>
                 Send Email
             </button>
@@ -421,6 +726,120 @@ html,body{height:100%;font-family:'Segoe UI',system-ui,-apple-system,sans-serif;
 
     <div class="page-body">
         
+        <!-- Filter Card -->
+        <div class="filter-card">
+            <div class="filter-header">
+                <h3>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>
+                    </svg>
+                    Filter Deposited Cheques
+                </h3>
+            </div>
+            <div class="filter-body">
+                <form id="filterForm" method="GET">
+                    <div class="filter-row">
+                        <!-- Date From -->
+                        <div class="filter-group">
+                            <label for="dateFrom">Deposited From</label>
+                            <input type="text" id="dateFrom" name="date_from" value="{{ filter_date_from }}" placeholder="Select date..." readonly>
+                        </div>
+                        
+                        <!-- Date To -->
+                        <div class="filter-group">
+                            <label for="dateTo">Deposited To</label>
+                            <input type="text" id="dateTo" name="date_to" value="{{ filter_date_to }}" placeholder="Select date..." readonly>
+                        </div>
+                        
+                        <!-- Company Name - Custom Dropdown -->
+                        <div class="filter-group">
+                            <label for="companyInput">Company Name</label>
+                            <div class="custom-dropdown" id="companyDropdown">
+                                <div class="dropdown-input-wrapper">
+                                    <input type="text" 
+                                           class="dropdown-input" 
+                                           id="companyInput" 
+                                           name="company_name"
+                                           value="{{ filter_company }}"
+                                           placeholder="Type or select..."
+                                           autocomplete="off">
+                                    <button type="button" class="dropdown-clear {% if filter_company %}visible{% endif %}" id="companyClear">×</button>
+                                    <svg class="dropdown-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <polyline points="6 9 12 15 18 9"/>
+                                    </svg>
+                                </div>
+                                <div class="dropdown-menu" id="companyMenu"></div>
+                            </div>
+                        </div>
+                        
+                        <!-- Cheque No -->
+                        <div class="filter-group">
+                            <label for="chequeNo">Cheque No</label>
+                            <input type="text" id="chequeNo" name="cheque_no" 
+                                   value="{{ filter_cheque_no }}" placeholder="Search cheque...">
+                        </div>
+                    </div>
+                    
+                    <div class="filter-actions">
+                        <button type="button" class="btn-filter btn-clear" id="btnClear">
+                            Clear All
+                        </button>
+                        <button type="submit" class="btn-filter btn-apply">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>
+                            </svg>
+                            Apply Filters
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        {% if has_filters %}
+        <!-- Result Summary -->
+        <div class="result-summary">
+            <div class="result-info">
+                <div class="result-item">
+                    <span class="label">Total Results</span>
+                    <span class="value">{{ total_count }}</span>
+                </div>
+                <div class="result-item">
+                    <span class="label">Total Amount</span>
+                    <span class="value amount">NPR {{ total_amount|floatformat:2 }}</span>
+                </div>
+            </div>
+            
+            {% if filter_date_from or filter_date_to or filter_company or filter_cheque_no %}
+            <div class="active-filters">
+                <span style="font-size:10px;color:#94a3b8;margin-right:6px;font-weight:500;">Filters:</span>
+                {% if filter_date_from %}
+                <div class="filter-tag">
+                    From: {{ filter_date_from }}
+                    <button onclick="removeFilter('date_from')">×</button>
+                </div>
+                {% endif %}
+                {% if filter_date_to %}
+                <div class="filter-tag">
+                    To: {{ filter_date_to }}
+                    <button onclick="removeFilter('date_to')">×</button>
+                </div>
+                {% endif %}
+                {% if filter_company %}
+                <div class="filter-tag">
+                    {{ filter_company }}
+                    <button onclick="removeFilter('company_name')">×</button>
+                </div>
+                {% endif %}
+                {% if filter_cheque_no %}
+                <div class="filter-tag">
+                    #{{ filter_cheque_no }}
+                    <button onclick="removeFilter('cheque_no')">×</button>
+                </div>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+
         <!-- Selection Bar -->
         <div class="selection-bar">
             <div class="selection-info">
@@ -428,7 +847,7 @@ html,body{height:100%;font-family:'Segoe UI',system-ui,-apple-system,sans-serif;
                     Selected: <span id="selectedCount">0</span> of {{ total_count }}
                 </div>
                 <div class="selection-amount" id="selectedAmount" style="display:none;">
-                    Amount: ₹<span id="selectedAmountValue">0.00</span>
+                    Total: NPR <span id="selectedAmountValue">0.00</span>
                 </div>
             </div>
             <div class="selection-actions">
@@ -456,13 +875,12 @@ html,body{height:100%;font-family:'Segoe UI',system-ui,-apple-system,sans-serif;
                                 </div>
                             </th>
                             <th>SN</th>
-                            <th>Company Name</th>
+                            <th>Company</th>
                             <th>Cheque No</th>
                             <th>Amount</th>
                             <th>Cheque Date</th>
-                            <th>Bank Name</th>
-                            <th>Branch</th>
-                            <th>Deposited At</th>
+                            <th>Deposited Date</th>
+                            <th>Bank / Branch</th>
                         </tr>
                     </thead>
                     <tbody id="tableBody">
@@ -476,18 +894,27 @@ html,body{height:100%;font-family:'Segoe UI',system-ui,-apple-system,sans-serif;
                                 </div>
                             </td>
                             <td class="col-sn">{{ forloop.counter|add:start_index }}</td>
-                            <td>{{ cheque.company_name }}</td>
-                            <td>{{ cheque.cheque_no }}</td>
-                            <td class="col-amount">₹{{ cheque.amount|floatformat:2 }}</td>
-                            <td class="col-date">{{ cheque.cheque_date|date:"Y-m-d" }}</td>
-                            <td>{{ cheque.deposit.bank_name }}</td>
-                            <td>{{ cheque.deposit.branch_name }}</td>
-                            <td class="col-date">{{ cheque.deposit.deposited_at|date:"Y-m-d H:i" }}</td>
+                            <td>
+                                <div class="company-cell">
+                                    <div class="company-avatar">{{ cheque.company_name|slice:":2"|upper }}</div>
+                                    <span class="company-name">{{ cheque.company_name }}</span>
+                                </div>
+                            </td>
+                            <td><span class="cheque-no">{{ cheque.cheque_no }}</span></td>
+                            <td class="col-amount">NPR {{ cheque.amount|floatformat:2 }}</td>
+                            <td class="col-date">{{ cheque.cheque_date|date:"M d, Y" }}</td>
+                            <td class="col-date">{{ cheque.deposit.deposited_at|date:"M d, Y" }}</td>
+                            <td><span class="bank-info">{{ cheque.deposit.bank_name }} / {{ cheque.deposit.branch_name }}</span></td>
                         </tr>
                         {% empty %}
                         <tr>
-                            <td colspan="9" class="empty-cell">
-                                No deposited cheques found.
+                            <td colspan="8" class="empty-cell">
+                                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#d1d5db" stroke-width="1" style="margin-bottom:12px;">
+                                    <circle cx="11" cy="11" r="8"/>
+                                    <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                                </svg>
+                                <div style="font-weight:500;color:#64748b;margin-bottom:4px;">No results found</div>
+                                <div style="font-size:12px;">Try adjusting your filter criteria</div>
                             </td>
                         </tr>
                         {% endfor %}
@@ -496,44 +923,73 @@ html,body{height:100%;font-family:'Segoe UI',system-ui,-apple-system,sans-serif;
             </div>
 
             <!-- Pagination -->
+            {% if page_obj and page_obj.paginator.count > 0 %}
             <div class="table-footer">
                 <div class="table-info">
-                    {% if page_obj.paginator.count > 0 %}
-                        Showing {{ page_obj.start_index }} – {{ page_obj.end_index }} of {{ page_obj.paginator.count }} entries
-                    {% else %}
-                        0 entries
-                    {% endif %}
+                    Showing {{ page_obj.start_index }} – {{ page_obj.end_index }} of {{ page_obj.paginator.count }} entries
                 </div>
                 
                 {% if page_obj.has_other_pages %}
                 <div class="pagination">
                     {% if page_obj.has_previous %}
-                        <a href="?page=1" class="page-link">&laquo;</a>
-                        <a href="?page={{ page_obj.previous_page_number }}" class="page-link">&lsaquo;</a>
+                        <a href="?page=1{% if filter_date_from %}&date_from={{ filter_date_from }}{% endif %}{% if filter_date_to %}&date_to={{ filter_date_to }}{% endif %}{% if filter_company %}&company_name={{ filter_company }}{% endif %}{% if filter_cheque_no %}&cheque_no={{ filter_cheque_no }}{% endif %}" class="page-link">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="11 17 6 12 11 7"/><polyline points="18 17 13 12 18 7"/></svg>
+                        </a>
+                        <a href="?page={{ page_obj.previous_page_number }}{% if filter_date_from %}&date_from={{ filter_date_from }}{% endif %}{% if filter_date_to %}&date_to={{ filter_date_to }}{% endif %}{% if filter_company %}&company_name={{ filter_company }}{% endif %}{% if filter_cheque_no %}&cheque_no={{ filter_cheque_no }}{% endif %}" class="page-link">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+                        </a>
                     {% else %}
-                        <span class="page-link disabled">&laquo;</span>
-                        <span class="page-link disabled">&lsaquo;</span>
+                        <span class="page-link disabled">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="11 17 6 12 11 7"/><polyline points="18 17 13 12 18 7"/></svg>
+                        </span>
+                        <span class="page-link disabled">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+                        </span>
                     {% endif %}
 
                     {% for num in page_range %}
                         {% if page_obj.number == num %}
                             <span class="page-link current">{{ num }}</span>
                         {% else %}
-                            <a href="?page={{ num }}" class="page-link">{{ num }}</a>
+                            <a href="?page={{ num }}{% if filter_date_from %}&date_from={{ filter_date_from }}{% endif %}{% if filter_date_to %}&date_to={{ filter_date_to }}{% endif %}{% if filter_company %}&company_name={{ filter_company }}{% endif %}{% if filter_cheque_no %}&cheque_no={{ filter_cheque_no }}{% endif %}" class="page-link">{{ num }}</a>
                         {% endif %}
                     {% endfor %}
 
                     {% if page_obj.has_next %}
-                        <a href="?page={{ page_obj.next_page_number }}" class="page-link">&rsaquo;</a>
-                        <a href="?page={{ page_obj.paginator.num_pages }}" class="page-link">&raquo;</a>
+                        <a href="?page={{ page_obj.next_page_number }}{% if filter_date_from %}&date_from={{ filter_date_from }}{% endif %}{% if filter_date_to %}&date_to={{ filter_date_to }}{% endif %}{% if filter_company %}&company_name={{ filter_company }}{% endif %}{% if filter_cheque_no %}&cheque_no={{ filter_cheque_no }}{% endif %}" class="page-link">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+                        </a>
+                        <a href="?page={{ page_obj.paginator.num_pages }}{% if filter_date_from %}&date_from={{ filter_date_from }}{% endif %}{% if filter_date_to %}&date_to={{ filter_date_to }}{% endif %}{% if filter_company %}&company_name={{ filter_company }}{% endif %}{% if filter_cheque_no %}&cheque_no={{ filter_cheque_no }}{% endif %}" class="page-link">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="13 17 18 12 13 7"/><polyline points="6 17 11 12 6 7"/></svg>
+                        </a>
                     {% else %}
-                        <span class="page-link disabled">&rsaquo;</span>
-                        <span class="page-link disabled">&raquo;</span>
+                        <span class="page-link disabled">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+                        </span>
+                        <span class="page-link disabled">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="13 17 18 12 13 7"/><polyline points="6 17 11 12 6 7"/></svg>
+                        </span>
                     {% endif %}
                 </div>
                 {% endif %}
             </div>
+            {% endif %}
         </div>
+
+        {% else %}
+        <!-- Initial Message - No Filters Applied -->
+        <div class="info-message">
+            <div class="info-message-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>
+                </svg>
+            </div>
+            <div class="info-message-title">Apply Filters to View Cheques</div>
+            <div class="info-message-text">
+                Please select date range or other filters above and click "Apply Filters" to view deposited cheques for emailing.
+            </div>
+        </div>
+        {% endif %}
 
     </div>
 </main>
@@ -544,12 +1000,12 @@ html,body{height:100%;font-family:'Segoe UI',system-ui,-apple-system,sans-serif;
         <div class="modal-header">
             <h3>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
-                    <polyline points="22,6 12,13 2,6"/>
+                    <line x1="22" y1="2" x2="11" y2="13"/>
+                    <polygon points="22 2 15 22 11 13 2 9 22 2"/>
                 </svg>
-                Send Deposited Cheques via Email
+                Send Deposited Cheques
             </h3>
-            <button type="button" class="btn-close-modal" id="btnCloseEmailModal">&times;</button>
+            <button type="button" class="btn-close-modal" id="btnCloseEmailModal">×</button>
         </div>
         <div class="modal-body">
             
@@ -580,9 +1036,9 @@ html,body{height:100%;font-family:'Segoe UI',system-ui,-apple-system,sans-serif;
             <!-- Preview Section -->
             <div class="preview-section">
                 <div class="preview-header">
-                    <h4>Selected Cheques Preview</h4>
+                    <h4>Selected Cheques</h4>
                     <div class="preview-summary">
-                        <span id="previewCount">0</span> cheques | Total: <span id="previewAmount">₹0.00</span>
+                        <span id="previewCount">0</span> cheques • Total: <span id="previewAmount">NPR 0.00</span>
                     </div>
                 </div>
                 <div class="preview-table-wrapper">
@@ -592,8 +1048,8 @@ html,body{height:100%;font-family:'Segoe UI',system-ui,-apple-system,sans-serif;
                                 <th>Company</th>
                                 <th>Cheque No</th>
                                 <th>Amount</th>
-                                <th>Bank</th>
-                                <th>Deposited At</th>
+                                <th>Cheque Date</th>
+                                <th>Deposited</th>
                             </tr>
                         </thead>
                         <tbody id="previewTableBody">
@@ -616,7 +1072,7 @@ html,body{height:100%;font-family:'Segoe UI',system-ui,-apple-system,sans-serif;
 
 <!-- ═══════════════ SUCCESS MODAL ═══════════════ -->
 <div class="modal-backdrop" id="successModal">
-    <div class="modal-box success-modal" style="width:400px;">
+    <div class="modal-box success-modal" style="width:440px;">
         <div class="modal-header">
             <h3>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -624,9 +1080,9 @@ html,body{height:100%;font-family:'Segoe UI',system-ui,-apple-system,sans-serif;
                 </svg>
                 Email Sent
             </h3>
-            <button type="button" class="btn-close-modal" id="btnCloseSuccessModal">&times;</button>
+            <button type="button" class="btn-close-modal" id="btnCloseSuccessModal">×</button>
         </div>
-        <div class="modal-body" style="text-align:center;padding:32px 20px;">
+        <div class="modal-body" style="text-align:center;padding:36px 24px;">
             <div class="success-icon">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <polyline points="20 6 9 17 4 12"/>
@@ -636,12 +1092,210 @@ html,body{height:100%;font-family:'Segoe UI',system-ui,-apple-system,sans-serif;
             <div class="success-message" id="successMessage">
                 Your email has been sent.
             </div>
-            <button type="button" class="success-btn" id="btnSuccessOk">OK</button>
+            <button type="button" class="success-btn" id="btnSuccessOk">Continue</button>
         </div>
     </div>
 </div>
 
+<!-- Hidden data element for company list -->
+<script id="companyData" type="application/json">{{ all_companies_json|safe }}</script>
+
+<!-- Flatpickr JS -->
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+
 <script>
+/* ═══════════════ GET COMPANY DATA ═══════════════ */
+function getCompanyData() {
+    try {
+        var dataElement = document.getElementById('companyData');
+        if (dataElement && dataElement.textContent.trim()) {
+            return JSON.parse(dataElement.textContent);
+        }
+    } catch (e) {
+        console.warn('Failed to parse company data:', e);
+    }
+    return [];
+}
+
+var allCompanies = getCompanyData();
+
+/* ═══════════════ FLATPICKR INITIALIZATION ═══════════════ */
+var today = new Date();
+
+flatpickr("#dateFrom", {
+    dateFormat: "Y-m-d",
+    maxDate: today,
+    allowInput: false,
+    clickOpens: true,
+    disableMobile: true,
+    theme: "airbnb",
+    onChange: function(selectedDates, dateStr, instance) {
+        if (dateStr) {
+            dateToInstance.set('minDate', dateStr);
+        }
+    }
+});
+
+var dateToInstance = flatpickr("#dateTo", {
+    dateFormat: "Y-m-d",
+    maxDate: today,
+    defaultDate: "{{ filter_date_to|default:current_date }}",
+    allowInput: false,
+    clickOpens: true,
+    disableMobile: true,
+    theme: "airbnb"
+});
+
+/* ═══════════════ CUSTOM DROPDOWN ═══════════════ */
+class CustomDropdown {
+    constructor(container, items) {
+        this.container = container;
+        this.items = items || [];
+        this.filteredItems = [...this.items];
+        this.highlightedIndex = -1;
+        this.isOpen = false;
+        
+        this.input = container.querySelector('.dropdown-input');
+        this.menu = container.querySelector('.dropdown-menu');
+        this.arrow = container.querySelector('.dropdown-arrow');
+        this.clearBtn = container.querySelector('.dropdown-clear');
+        
+        if (this.input && this.menu) {
+            this.init();
+        }
+    }
+    
+    init() {
+        this.renderItems();
+        
+        this.input.addEventListener('focus', () => this.open());
+        this.input.addEventListener('input', (e) => {
+            this.filterItems(e.target.value);
+            this.open();
+            this.updateClearButton();
+        });
+        this.input.addEventListener('keydown', (e) => this.handleKeydown(e));
+        
+        if (this.clearBtn) {
+            this.clearBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.clear();
+            });
+        }
+        
+        document.addEventListener('click', (e) => {
+            if (!this.container.contains(e.target)) {
+                this.close();
+            }
+        });
+    }
+    
+    renderItems() {
+        if (this.filteredItems.length === 0) {
+            this.menu.innerHTML = '<div class="dropdown-empty">No companies found</div>';
+            return;
+        }
+        
+        this.menu.innerHTML = this.filteredItems.map((item, index) => {
+            var isSelected = item.toLowerCase() === this.input.value.toLowerCase();
+            var isHighlighted = index === this.highlightedIndex;
+            return '<div class="dropdown-item ' + (isSelected ? 'selected' : '') + ' ' + (isHighlighted ? 'highlighted' : '') + '" data-index="' + index + '" data-value="' + this.escapeHtml(item) + '">' + this.escapeHtml(item) + '</div>';
+        }).join('');
+        
+        var self = this;
+        this.menu.querySelectorAll('.dropdown-item').forEach(function(item) {
+            item.addEventListener('click', function() {
+                self.selectItem(item.dataset.value);
+            });
+        });
+    }
+    
+    escapeHtml(text) {
+        var div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+    
+    filterItems(query) {
+        var q = query.toLowerCase().trim();
+        if (!q) {
+            this.filteredItems = [...this.items];
+        } else {
+            this.filteredItems = this.items.filter(function(item) {
+                return item.toLowerCase().includes(q);
+            });
+        }
+        this.highlightedIndex = -1;
+        this.renderItems();
+    }
+    
+    selectItem(value) {
+        this.input.value = value;
+        this.close();
+        this.updateClearButton();
+    }
+    
+    clear() {
+        this.input.value = '';
+        this.filterItems('');
+        this.updateClearButton();
+        this.input.focus();
+    }
+    
+    updateClearButton() {
+        if (!this.clearBtn) return;
+        if (this.input.value.trim()) {
+            this.clearBtn.classList.add('visible');
+        } else {
+            this.clearBtn.classList.remove('visible');
+        }
+    }
+    
+    open() {
+        if (this.isOpen) return;
+        this.isOpen = true;
+        this.menu.classList.add('open');
+        this.input.classList.add('active');
+        if (this.arrow) this.arrow.classList.add('open');
+        this.filterItems(this.input.value);
+    }
+    
+    close() {
+        if (!this.isOpen) return;
+        this.isOpen = false;
+        this.menu.classList.remove('open');
+        this.input.classList.remove('active');
+        if (this.arrow) this.arrow.classList.remove('open');
+        this.highlightedIndex = -1;
+    }
+    
+    handleKeydown(e) {
+        if (e.key === 'Escape') {
+            this.close();
+        } else if (e.key === 'Enter' && this.highlightedIndex >= 0) {
+            e.preventDefault();
+            this.selectItem(this.filteredItems[this.highlightedIndex]);
+        }
+    }
+}
+
+var companyDropdown = document.getElementById('companyDropdown');
+if (companyDropdown) {
+    new CustomDropdown(companyDropdown, allCompanies);
+}
+
+/* ═══════════════ FILTER ACTIONS ═══════════════ */
+document.getElementById('btnClear').addEventListener('click', function() {
+    window.location.href = '{% url "email_deposited_cheques" %}';
+});
+
+function removeFilter(filterName) {
+    var url = new URL(window.location.href);
+    url.searchParams.delete(filterName);
+    url.searchParams.delete('page');
+    window.location.href = url.toString();
+}
+
 /* ═══════════════ STATE ═══════════════ */
 var selectedIds = new Set();
 var csrftoken = '{{ csrf_token }}';
@@ -681,7 +1335,6 @@ function updateSelectionUI() {
     var count = selectedIds.size;
     selectedCountEl.textContent = count;
     
-    // Calculate selected amount
     var totalAmount = 0;
     selectedIds.forEach(function(id) {
         var row = tableBody.querySelector('tr[data-id="' + id + '"]');
@@ -692,7 +1345,7 @@ function updateSelectionUI() {
     
     if (count > 0) {
         selectedAmountEl.style.display = 'block';
-        selectedAmountValueEl.textContent = totalAmount.toLocaleString('en-IN', {minimumFractionDigits: 2});
+        selectedAmountValueEl.textContent = totalAmount.toLocaleString('en-NP', {minimumFractionDigits: 2});
         btnOpenEmailModal.disabled = false;
         btnClearSelection.style.display = 'inline-block';
     } else {
@@ -701,7 +1354,6 @@ function updateSelectionUI() {
         btnClearSelection.style.display = 'none';
     }
     
-    // Update header checkbox
     var allCheckboxes = tableBody.querySelectorAll('.custom-checkbox');
     var allChecked = allCheckboxes.length > 0 && selectedIds.size === allCheckboxes.length;
     var someChecked = selectedIds.size > 0 && selectedIds.size < allCheckboxes.length;
@@ -720,7 +1372,6 @@ function updateSelectionUI() {
         btnSelectAll.textContent = 'Select All';
     }
     
-    // Update row styles
     tableBody.querySelectorAll('tr').forEach(function(row) {
         var id = row.dataset.id;
         if (id && selectedIds.has(parseInt(id))) {
@@ -772,43 +1423,48 @@ function deselectAll() {
 }
 
 /* ═══════════════ EVENT LISTENERS ═══════════════ */
+if (tableBody) {
+    tableBody.addEventListener('click', function(e) {
+        var checkbox = e.target.closest('.custom-checkbox');
+        if (checkbox) {
+            toggleCheckbox(checkbox);
+        }
+    });
+}
 
-// Row checkbox click
-tableBody.addEventListener('click', function(e) {
-    var checkbox = e.target.closest('.custom-checkbox');
-    if (checkbox) {
-        toggleCheckbox(checkbox);
-    }
-});
+if (headerCheckbox) {
+    headerCheckbox.addEventListener('click', function() {
+        if (headerCheckbox.classList.contains('checked')) {
+            deselectAll();
+        } else {
+            selectAll();
+        }
+    });
+}
 
-// Header checkbox click
-headerCheckbox.addEventListener('click', function() {
-    if (headerCheckbox.classList.contains('checked')) {
+if (btnSelectAll) {
+    btnSelectAll.addEventListener('click', function() {
+        if (btnSelectAll.classList.contains('active')) {
+            deselectAll();
+        } else {
+            selectAll();
+        }
+    });
+}
+
+if (btnClearSelection) {
+    btnClearSelection.addEventListener('click', function() {
         deselectAll();
-    } else {
-        selectAll();
-    }
-});
-
-// Select All button
-btnSelectAll.addEventListener('click', function() {
-    if (btnSelectAll.classList.contains('active')) {
-        deselectAll();
-    } else {
-        selectAll();
-    }
-});
-
-// Clear Selection button
-btnClearSelection.addEventListener('click', function() {
-    deselectAll();
-});
+    });
+}
 
 /* ═══════════════ EMAIL DROPDOWN ═══════════════ */
-emailDropdownBtn.addEventListener('click', function() {
-    emailDropdownMenu.classList.toggle('open');
-    emailDropdownBtn.classList.toggle('open');
-});
+if (emailDropdownBtn) {
+    emailDropdownBtn.addEventListener('click', function() {
+        emailDropdownMenu.classList.toggle('open');
+        emailDropdownBtn.classList.toggle('open');
+    });
+}
 
 document.querySelectorAll('.email-option').forEach(function(option) {
     option.addEventListener('click', function() {
@@ -820,32 +1476,33 @@ document.querySelectorAll('.email-option').forEach(function(option) {
 
 document.addEventListener('click', function(e) {
     if (!e.target.closest('.email-dropdown')) {
-        emailDropdownMenu.classList.remove('open');
-        emailDropdownBtn.classList.remove('open');
+        if (emailDropdownMenu) emailDropdownMenu.classList.remove('open');
+        if (emailDropdownBtn) emailDropdownBtn.classList.remove('open');
     }
 });
 
 /* ═══════════════ EMAIL MODAL ═══════════════ */
-btnOpenEmailModal.addEventListener('click', function() {
-    if (selectedIds.size === 0) return;
-    
-    // Load preview data
-    loadPreviewData();
-    
-    emailModal.classList.add('active');
-});
+if (btnOpenEmailModal) {
+    btnOpenEmailModal.addEventListener('click', function() {
+        if (selectedIds.size === 0) return;
+        loadPreviewData();
+        emailModal.classList.add('active');
+    });
+}
 
 function closeEmailModal() {
     emailModal.classList.remove('active');
     emailInput.value = '';
 }
 
-btnCloseEmailModal.addEventListener('click', closeEmailModal);
-btnCancelEmail.addEventListener('click', closeEmailModal);
+if (btnCloseEmailModal) btnCloseEmailModal.addEventListener('click', closeEmailModal);
+if (btnCancelEmail) btnCancelEmail.addEventListener('click', closeEmailModal);
 
-emailModal.addEventListener('click', function(e) {
-    if (e.target === emailModal) closeEmailModal();
-});
+if (emailModal) {
+    emailModal.addEventListener('click', function(e) {
+        if (e.target === emailModal) closeEmailModal();
+    });
+}
 
 function loadPreviewData() {
     var ids = Array.from(selectedIds);
@@ -862,15 +1519,15 @@ function loadPreviewData() {
     .then(function(data) {
         if (data.success) {
             previewCount.textContent = data.total_count;
-            previewAmount.textContent = '₹' + data.total_amount.toLocaleString('en-IN', {minimumFractionDigits: 2});
+            previewAmount.textContent = 'NPR ' + data.total_amount.toLocaleString('en-NP', {minimumFractionDigits: 2});
             
             var html = '';
             data.cheques.forEach(function(cheque) {
                 html += '<tr>' +
                     '<td>' + escapeHtml(cheque.company_name) + '</td>' +
                     '<td>' + escapeHtml(cheque.cheque_no) + '</td>' +
-                    '<td class="col-amount">₹' + cheque.amount.toLocaleString('en-IN', {minimumFractionDigits: 2}) + '</td>' +
-                    '<td>' + escapeHtml(cheque.bank_name) + '</td>' +
+                    '<td class="col-amount">NPR ' + cheque.amount.toLocaleString('en-NP', {minimumFractionDigits: 2}) + '</td>' +
+                    '<td>' + escapeHtml(cheque.cheque_date) + '</td>' +
                     '<td>' + escapeHtml(cheque.deposited_at) + '</td>' +
                 '</tr>';
             });
@@ -890,62 +1547,63 @@ function escapeHtml(text) {
 }
 
 /* ═══════════════ SEND EMAIL ═══════════════ */
-btnSendEmail.addEventListener('click', function() {
-    var email = emailInput.value.trim();
-    
-    if (!email) {
-        alert('Please enter recipient email address.');
-        emailInput.focus();
-        return;
-    }
-    
-    if (!validateEmail(email)) {
-        alert('Please enter a valid email address.');
-        emailInput.focus();
-        return;
-    }
-    
-    var ids = Array.from(selectedIds);
-    
-    // Show loading
-    sendSpinner.classList.add('active');
-    sendText.textContent = 'Sending...';
-    btnSendEmail.disabled = true;
-    
-    fetch('{% url "send_deposited_email" %}', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': csrftoken
-        },
-        body: JSON.stringify({
-            email: email,
-            cheque_ids: ids
-        })
-    })
-    .then(function(response) { return response.json(); })
-    .then(function(data) {
-        sendSpinner.classList.remove('active');
-        sendText.textContent = 'Send Email';
-        btnSendEmail.disabled = false;
+if (btnSendEmail) {
+    btnSendEmail.addEventListener('click', function() {
+        var email = emailInput.value.trim();
         
-        if (data.success) {
-            closeEmailModal();
-            successMessage.textContent = 'Email has been sent to ' + email;
-            successModal.classList.add('active');
-            deselectAll();
-        } else {
-            alert(data.message || 'Failed to send email.');
+        if (!email) {
+            alert('Please enter recipient email address.');
+            emailInput.focus();
+            return;
         }
-    })
-    .catch(function(error) {
-        sendSpinner.classList.remove('active');
-        sendText.textContent = 'Send Email';
-        btnSendEmail.disabled = false;
-        alert('Something went wrong. Please try again.');
-        console.error('Error:', error);
+        
+        if (!validateEmail(email)) {
+            alert('Please enter a valid email address.');
+            emailInput.focus();
+            return;
+        }
+        
+        var ids = Array.from(selectedIds);
+        
+        sendSpinner.classList.add('active');
+        sendText.textContent = 'Sending...';
+        btnSendEmail.disabled = true;
+        
+        fetch('{% url "send_deposited_email" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrftoken
+            },
+            body: JSON.stringify({
+                email: email,
+                cheque_ids: ids
+            })
+        })
+        .then(function(response) { return response.json(); })
+        .then(function(data) {
+            sendSpinner.classList.remove('active');
+            sendText.textContent = 'Send Email';
+            btnSendEmail.disabled = false;
+            
+            if (data.success) {
+                closeEmailModal();
+                successMessage.textContent = 'Email has been sent to ' + email;
+                successModal.classList.add('active');
+                deselectAll();
+            } else {
+                alert(data.message || 'Failed to send email.');
+            }
+        })
+        .catch(function(error) {
+            sendSpinner.classList.remove('active');
+            sendText.textContent = 'Send Email';
+            btnSendEmail.disabled = false;
+            alert('Something went wrong. Please try again.');
+            console.error('Error:', error);
+        });
     });
-});
+}
 
 function validateEmail(email) {
     var re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -957,19 +1615,21 @@ function closeSuccessModal() {
     successModal.classList.remove('active');
 }
 
-btnCloseSuccessModal.addEventListener('click', closeSuccessModal);
-btnSuccessOk.addEventListener('click', closeSuccessModal);
+if (btnCloseSuccessModal) btnCloseSuccessModal.addEventListener('click', closeSuccessModal);
+if (btnSuccessOk) btnSuccessOk.addEventListener('click', closeSuccessModal);
 
-successModal.addEventListener('click', function(e) {
-    if (e.target === successModal) closeSuccessModal();
-});
+if (successModal) {
+    successModal.addEventListener('click', function(e) {
+        if (e.target === successModal) closeSuccessModal();
+    });
+}
 
 /* ═══════════════ KEYBOARD SHORTCUTS ═══════════════ */
 document.addEventListener('keydown', function(e) {
     if (e.key === 'Escape') {
-        if (successModal.classList.contains('active')) {
+        if (successModal && successModal.classList.contains('active')) {
             closeSuccessModal();
-        } else if (emailModal.classList.contains('active')) {
+        } else if (emailModal && emailModal.classList.contains('active')) {
             closeEmailModal();
         }
     }

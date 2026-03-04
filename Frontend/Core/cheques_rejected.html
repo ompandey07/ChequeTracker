@@ -1,94 +1,322 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Rejected Cheques — Admin Panel</title>
+<title>Rejected Cheques — Cheque Tracker</title>
+<link rel="shortcut icon" href="{% static "Logo.png" %}" type="image/x-icon">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
-/* Same styles as deposited template - abbreviated for space */
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
-html,body{height:100%;font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#f0f1f5;color:#1e1e2f;}
+html{scroll-behavior:smooth;}
+body{
+    min-height:100vh;
+    font-family:'Inter',system-ui,-apple-system,sans-serif;
+    background:#f8f9fb;
+    color:#1a1a2e;
+    line-height:1.5;
+}
 
-.sidebar{position:fixed;top:0;left:0;width:240px;height:100vh;background:#1e1e2f;display:flex;flex-direction:column;z-index:100;}
-.sidebar-brand{height:60px;display:flex;align-items:center;padding:0 20px;border-bottom:1px solid rgba(255,255,255,.08);}
-.sidebar-brand .brand-icon{width:32px;height:32px;background:#fff;color:#1e1e2f;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;margin-right:12px;}
-.sidebar-brand span{color:#fff;font-size:15px;font-weight:600;}
-.sidebar-nav{flex:1;padding:12px 0;}
-.nav-item{display:flex;align-items:center;gap:12px;padding:10px 20px;color:rgba(255,255,255,.55);text-decoration:none;font-size:13px;font-weight:500;border-left:3px solid transparent;transition:all .15s ease;}
-.nav-item:hover{color:rgba(255,255,255,.85);background:rgba(255,255,255,.04);}
-.nav-item.active{color:#fff;background:rgba(255,255,255,.08);border-left-color:#fff;}
-.nav-item svg{width:18px;height:18px;flex-shrink:0;}
-.nav-section{padding:8px 20px 6px;color:rgba(255,255,255,.35);font-size:10px;text-transform:uppercase;letter-spacing:1px;margin-top:8px;}
-.sidebar-footer{padding:16px 20px;border-top:1px solid rgba(255,255,255,.08);}
-.user-badge{display:flex;align-items:center;gap:10px;}
-.user-badge .avatar{width:32px;height:32px;background:rgba(255,255,255,.15);color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;}
-.user-badge .uname{color:rgba(255,255,255,.7);font-size:12px;}
+/* ═══════════════ SIDEBAR ═══════════════ */
+.sidebar{
+    position:fixed;top:0;left:0;width:260px;height:100vh;
+    background:#ffffff;
+    border-right:1px solid #e8e8ec;
+    display:flex;flex-direction:column;z-index:100;
+}
+.sidebar-brand{
+    height:72px;display:flex;align-items:center;padding:0 24px;
+    border-bottom:1px solid #e8e8ec;
+}
+.sidebar-brand .brand-icon{
+    width:40px;height:40px;
+    background:linear-gradient(135deg,#4f46e5 0%,#7c3aed 100%);
+    color:#fff;display:flex;align-items:center;justify-content:center;
+    font-weight:800;font-size:16px;margin-right:14px;
+}
+.sidebar-brand span{
+    color:#1a1a2e;font-size:17px;font-weight:700;letter-spacing:-0.3px;
+}
+.sidebar-nav{flex:1;padding:20px 0;overflow-y:auto;}
+.sidebar-nav::-webkit-scrollbar{width:0;}
+.nav-item{
+    display:flex;align-items:center;gap:14px;padding:13px 24px;
+    color:#64748b;text-decoration:none;font-size:13px;
+    font-weight:500;position:relative;transition:all .2s ease;
+    margin:2px 12px;
+}
+.nav-item::before{
+    content:'';position:absolute;left:0;top:50%;transform:translateY(-50%);
+    width:3px;height:0;background:linear-gradient(180deg,#4f46e5,#7c3aed);
+    transition:height .2s ease;
+}
+.nav-item:hover{
+    color:#1a1a2e;
+    background:#f1f5f9;
+}
+.nav-item:hover::before{height:24px;}
+.nav-item.active{
+    color:#4f46e5;
+    background:linear-gradient(90deg,rgba(79,70,229,0.08) 0%,transparent 100%);
+}
+.nav-item.active::before{height:24px;}
+.nav-item svg{width:18px;height:18px;flex-shrink:0;opacity:0.7;}
+.nav-item.active svg{opacity:1;color:#4f46e5;}
+.nav-section{
+    padding:20px 24px 10px;color:#94a3b8;
+    font-size:10px;text-transform:uppercase;letter-spacing:1.5px;font-weight:600;
+}
+.sidebar-footer{
+    padding:20px 24px;border-top:1px solid #e8e8ec;
+}
+.user-badge{display:flex;align-items:center;gap:12px;}
+.user-badge .avatar{
+    width:38px;height:38px;
+    background:linear-gradient(135deg,#4f46e5 0%,#7c3aed 100%);
+    color:#fff;display:flex;align-items:center;justify-content:center;
+    font-size:12px;font-weight:700;
+}
+.user-badge .user-info{flex:1;}
+.user-badge .uname{color:#1a1a2e;font-size:13px;font-weight:600;display:block;}
+.user-badge .urole{color:#94a3b8;font-size:11px;}
 
-.main-content{margin-left:240px;min-height:100vh;}
-.content-header{height:60px;background:#fff;border-bottom:1px solid #e5e7eb;display:flex;align-items:center;justify-content:space-between;padding:0 24px;}
-.content-header h1{font-size:16px;font-weight:600;color:#1e1e2f;}
+/* ═══════════════ MAIN CONTENT ═══════════════ */
+.main-content{margin-left:260px;min-height:100vh;}
 
-.status-tabs{display:flex;gap:4px;padding:16px 24px 0;background:#fff;}
-.status-tab{padding:10px 20px;font-size:13px;font-weight:600;text-decoration:none;color:#6b7280;border:1px solid #e5e7eb;border-bottom:none;background:#f9fafb;transition:all .15s ease;}
-.status-tab:hover{background:#f3f4f6;}
-.status-tab.active{background:#fff;color:#1e1e2f;border-bottom:1px solid #fff;margin-bottom:-1px;}
-.status-tab .count{display:inline-block;min-width:20px;padding:2px 6px;background:#e5e7eb;color:#374151;font-size:11px;margin-left:6px;text-align:center;}
-.status-tab.active .count{background:#1e1e2f;color:#fff;}
+.content-header{
+    height:72px;background:rgba(255,255,255,0.95);
+    backdrop-filter:blur(20px);
+    border-bottom:1px solid #e8e8ec;
+    display:flex;align-items:center;justify-content:space-between;
+    padding:0 32px;position:sticky;top:0;z-index:50;
+}
+.header-left{display:flex;align-items:center;gap:20px;}
+.content-header h1{font-size:20px;font-weight:700;color:#1a1a2e;letter-spacing:-0.3px;}
+.header-breadcrumb{
+    display:flex;align-items:center;gap:8px;
+    font-size:12px;color:#94a3b8;
+}
+.header-breadcrumb span{color:#64748b;}
 
-.content-body{margin:0 24px 20px;}
-.table-card{background:#fff;border:1px solid #e5e7eb;border-top:none;}
+/* ═══════════════ STATUS TABS ═══════════════ */
+.status-tabs{
+    display:flex;gap:0;background:#fff;
+    border-bottom:1px solid #e8e8ec;
+    padding:0 32px;
+}
+.status-tab{
+    padding:16px 24px;font-size:13px;font-weight:600;
+    text-decoration:none;color:#64748b;
+    position:relative;transition:all .2s ease;
+}
+.status-tab::after{
+    content:'';position:absolute;bottom:0;left:0;right:0;
+    height:2px;background:transparent;transition:background .2s ease;
+}
+.status-tab:hover{color:#1a1a2e;}
+.status-tab.active{color:#ef4444;}
+.status-tab.active::after{background:linear-gradient(90deg,#ef4444,#f87171);}
+.status-tab .count{
+    display:inline-flex;align-items:center;justify-content:center;
+    min-width:24px;height:20px;padding:0 8px;
+    font-size:11px;font-weight:700;margin-left:8px;
+}
+.status-tab.tab-new .count{background:#eff6ff;color:#3b82f6;}
+.status-tab.tab-deposited .count{background:#ecfdf5;color:#10b981;}
+.status-tab.tab-rejected .count{background:#fef2f2;color:#ef4444;}
+.status-tab.active .count{background:linear-gradient(135deg,#ef4444,#f87171);color:#fff;}
 
+/* ═══════════════ CONTENT BODY ═══════════════ */
+.content-body{padding:32px;}
+.table-card{
+    background:#fff;
+    border:1px solid #e8e8ec;
+}
+
+/* ═══════════════ TABLE ═══════════════ */
 .table-wrapper{overflow-x:auto;}
 .data-table{width:100%;border-collapse:collapse;font-size:13px;}
-.data-table th,.data-table td{border:1px solid #d1d5db;padding:9px 12px;text-align:left;}
-.data-table thead th{background:#f3f4f6;font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.4px;color:#374151;white-space:nowrap;position:sticky;top:0;}
-.data-table tbody tr:hover{background:#f8fafc;}
-.data-table td.col-sn{width:50px;text-align:center;color:#6b7280;}
-.data-table td.col-amount{text-align:right;font-variant-numeric:tabular-nums;font-weight:500;}
-.data-table td.col-date{white-space:nowrap;}
-.data-table td.col-actions{white-space:nowrap;width:100px;text-align:center;}
-.empty-cell{text-align:center;padding:40px 12px;color:#9ca3af;font-size:14px;}
+.data-table th,.data-table td{
+    padding:14px 16px;text-align:left;
+    border-bottom:1px solid #f1f5f9;
+}
+.data-table thead th{
+    background:#f8f9fb;font-weight:600;font-size:10px;
+    text-transform:uppercase;letter-spacing:1px;color:#64748b;
+    white-space:nowrap;position:sticky;top:0;
+    border-bottom:1px solid #e8e8ec;
+}
+.data-table tbody tr{transition:background .2s;}
+.data-table tbody tr:hover{background:#f8f9fb;}
+.data-table tbody tr:last-child td{border-bottom:none;}
+.data-table td.col-sn{width:60px;text-align:center;color:#94a3b8;font-weight:500;}
+.data-table td.col-amount{
+    text-align:right;font-variant-numeric:tabular-nums;
+    font-weight:600;color:#1a1a2e;font-family:'Inter',monospace;
+}
+.data-table td.col-date{white-space:nowrap;color:#64748b;}
+.data-table td.col-remarks{max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#94a3b8;}
+.data-table td.col-status{white-space:nowrap;}
+.data-table td.col-actions{white-space:nowrap;text-align:right;}
+.data-table .company-cell{
+    display:flex;align-items:center;gap:12px;
+}
+.data-table .company-avatar{
+    width:36px;height:36px;
+    background:linear-gradient(135deg,#fef2f2,#fee2e2);
+    color:#ef4444;font-size:11px;font-weight:700;
+    display:flex;align-items:center;justify-content:center;
+    flex-shrink:0;
+}
+.data-table .company-name{color:#1a1a2e;font-weight:500;}
+.data-table .cheque-no{
+    font-family:'Inter',monospace;font-size:12px;color:#64748b;
+    background:#f1f5f9;padding:4px 8px;
+}
+.empty-cell{text-align:center;padding:64px 16px;color:#94a3b8;font-size:14px;}
 
-.status-badge{display:inline-block;padding:3px 10px;font-size:11px;font-weight:600;}
-.status-rejected{background:#fee2e2;color:#dc2626;}
+/* ═══════════════ STATUS BADGE ═══════════════ */
+.status-badge{
+    display:inline-flex;align-items:center;gap:6px;
+    padding:6px 12px;font-size:10px;font-weight:700;
+    text-transform:uppercase;letter-spacing:0.5px;
+}
+.status-badge::before{content:'';width:6px;height:6px;}
+.status-rejected{background:#fef2f2;color:#ef4444;}
+.status-rejected::before{background:#ef4444;}
 
-.btn-action{padding:4px 10px;font-size:11px;font-weight:600;border:1px solid;background:transparent;cursor:pointer;transition:all .15s ease;}
-.revert-btn{color:#16a34a;border-color:#16a34a;}
-.revert-btn:hover{background:#16a34a;color:#fff;}
+/* ═══════════════ ACTION BUTTONS ═══════════════ */
+.action-group{display:flex;align-items:center;gap:6px;justify-content:flex-end;}
+.btn-action{
+    padding:6px 12px;font-size:11px;font-weight:600;
+    border:1px solid;background:transparent;cursor:pointer;
+    transition:all .2s ease;display:inline-flex;align-items:center;gap:4px;
+}
+.btn-action svg{width:14px;height:14px;}
+.revert-btn{color:#10b981;border-color:#a7f3d0;background:#ecfdf5;}
+.revert-btn:hover{background:#10b981;color:#fff;border-color:#10b981;}
 
-.table-footer{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-top:1px solid #e5e7eb;background:#fafafa;}
-.table-info{font-size:12px;color:#6b7280;}
-.pagination{display:flex;align-items:center;gap:2px;}
-.page-link{padding:5px 10px;font-size:12px;border:1px solid #d1d5db;text-decoration:none;color:#374151;background:#fff;cursor:pointer;transition:all .15s ease;}
-.page-link:hover{background:#f3f4f6;}
-.page-link.current{background:#1e1e2f;color:#fff;border-color:#1e1e2f;}
-.page-link.disabled{color:#c0c0c0;cursor:default;pointer-events:none;}
+/* ═══════════════ TABLE FOOTER ═══════════════ */
+.table-footer{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:16px 20px;border-top:1px solid #e8e8ec;
+    background:#f8f9fb;
+}
+.table-info{font-size:12px;color:#64748b;font-weight:500;}
+.pagination{display:flex;align-items:center;gap:4px;}
+.page-link{
+    min-width:32px;height:32px;padding:0 10px;font-size:12px;font-weight:500;
+    border:1px solid #e8e8ec;text-decoration:none;color:#64748b;
+    background:#fff;cursor:pointer;transition:all .2s ease;
+    display:flex;align-items:center;justify-content:center;
+}
+.page-link:hover{background:#f1f5f9;color:#1a1a2e;}
+.page-link.current{
+    background:linear-gradient(135deg,#4f46e5,#7c3aed);
+    color:#fff;border-color:transparent;
+}
+.page-link.disabled{color:#d1d5db;cursor:default;pointer-events:none;}
 
-.modal-backdrop{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.35);z-index:300;align-items:center;justify-content:center;}
-.modal-backdrop.active{display:flex;}
-.modal-box{background:#fff;border:1px solid #d1d5db;width:400px;max-width:90%;}
-.modal-box-header{padding:16px 20px;border-bottom:1px solid #e5e7eb;display:flex;align-items:center;justify-content:space-between;}
-.modal-box-header h3{font-size:15px;font-weight:600;}
-.modal-box-body{padding:24px 20px;text-align:center;}
-.modal-box-footer{padding:12px 20px;border-top:1px solid #e5e7eb;display:flex;justify-content:flex-end;gap:8px;}
-.btn-modal{height:34px;padding:0 16px;font-size:13px;font-weight:600;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:all .15s ease;}
-.btn-modal-cancel{background:#f3f4f6;color:#374151;border:1px solid #d1d5db;}
-.btn-modal-cancel:hover{background:#e5e7eb;}
-.btn-modal-success{background:#16a34a;color:#fff;}
-.btn-modal-success:hover{background:#15803d;}
+/* ═══════════════ MODAL SHARED ═══════════════ */
+.modal-backdrop{
+    position:fixed;top:0;left:0;width:100%;height:100%;
+    background:rgba(15,23,42,0.4);backdrop-filter:blur(4px);z-index:300;
+    display:flex;align-items:center;justify-content:center;
+    opacity:0;visibility:hidden;
+    transition:opacity .3s ease, visibility .3s ease;
+}
+.modal-backdrop.active{opacity:1;visibility:visible;}
+.modal-backdrop.closing{opacity:0;}
+
+.modal-box{
+    background:#fff;border:1px solid #e8e8ec;width:420px;max-width:90%;
+    box-shadow:0 25px 50px rgba(0,0,0,0.15);
+    transform:scale(0.9) translateY(20px);
+    opacity:0;
+    transition:transform .3s cubic-bezier(0.4, 0, 0.2, 1), opacity .3s ease;
+}
+.modal-backdrop.active .modal-box{
+    transform:scale(1) translateY(0);
+    opacity:1;
+}
+.modal-backdrop.closing .modal-box{
+    transform:scale(0.9) translateY(20px);
+    opacity:0;
+}
+
+.modal-box-header{
+    padding:20px 24px;border-bottom:1px solid #e8e8ec;
+    display:flex;align-items:center;justify-content:space-between;
+}
+.modal-box-header h3{font-size:16px;font-weight:700;color:#1a1a2e;}
+.modal-box-body{padding:28px 24px;}
+.modal-box-body.text-center{text-align:center;}
+.modal-box-footer{
+    padding:16px 24px;border-top:1px solid #e8e8ec;
+    display:flex;justify-content:flex-end;gap:10px;
+    background:#f8f9fb;
+}
+.btn-modal{
+    height:40px;padding:0 20px;font-size:13px;font-weight:600;
+    border:none;cursor:pointer;display:flex;align-items:center;
+    justify-content:center;gap:6px;transition:all .2s ease;
+}
+.btn-modal-cancel{background:#fff;color:#64748b;border:1px solid #e8e8ec;}
+.btn-modal-cancel:hover{background:#f1f5f9;color:#1a1a2e;}
+.btn-modal-success{background:linear-gradient(135deg,#10b981,#34d399);color:#fff;}
+.btn-modal-success:hover{opacity:0.9;}
 .btn-modal-success:disabled{opacity:.6;cursor:not-allowed;}
 
-.success-icon{width:48px;height:48px;border:2px solid #16a34a;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;}
-.success-icon svg{width:28px;height:28px;color:#16a34a;}
-.success-message{font-size:14px;color:#374151;margin-bottom:4px;}
-.btn-modal-ok{width:100%;height:36px;background:#1e1e2f;color:#fff;border:none;font-size:13px;font-weight:600;cursor:pointer;margin-top:16px;transition:background .15s ease;}
-.btn-modal-ok:hover{background:#2d2d44;}
+/* ═══════════════ MODAL ICONS ═══════════════ */
+.modal-icon{
+    width:64px;height:64px;
+    display:flex;align-items:center;justify-content:center;
+    margin:0 auto 20px;
+}
+.modal-icon svg{width:32px;height:32px;}
+.modal-icon.icon-success{background:#ecfdf5;color:#10b981;}
+.modal-icon.icon-revert{background:#ecfdf5;color:#10b981;}
+.modal-message{font-size:14px;color:#1a1a2e;margin-bottom:8px;font-weight:500;}
+.modal-submessage{font-size:12px;color:#94a3b8;}
 
-.spinner{display:none;width:16px;height:16px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .5s linear infinite;}
+.btn-modal-ok{
+    width:100%;height:44px;
+    background:linear-gradient(135deg,#4f46e5 0%,#7c3aed 100%);
+    color:#fff;border:none;font-size:13px;font-weight:600;cursor:pointer;
+    margin-top:20px;transition:all .2s ease;
+}
+.btn-modal-ok:hover{opacity:0.9;}
+
+/* ═══════════════ SPINNER ═══════════════ */
+.spinner{
+    display:none;width:18px;height:18px;
+    border:2px solid rgba(255,255,255,.3);border-top-color:#fff;
+    animation:spin .6s linear infinite;
+}
 .spinner.active{display:inline-block;}
 @keyframes spin{to{transform:rotate(360deg);}}
 
-@media(max-width:768px){.sidebar{width:200px;}.main-content{margin-left:200px;}}
+/* ═══════════════ RESPONSIVE ═══════════════ */
+@media(max-width:1200px){
+    .data-table td.col-remarks{display:none;}
+}
+@media(max-width:900px){
+    .sidebar{width:72px;}
+    .sidebar-brand span,.nav-item span,.user-badge .user-info,.nav-section{display:none;}
+    .sidebar-brand{justify-content:center;padding:0;}
+    .sidebar-brand .brand-icon{margin:0;}
+    .nav-item{padding:14px;justify-content:center;margin:4px 8px;}
+    .main-content{margin-left:72px;}
+    .content-header{padding:0 20px;}
+    .content-body{padding:20px;}
+    .status-tabs{padding:0 20px;}
+}
+@media(max-width:600px){
+    .action-group{flex-wrap:wrap;gap:4px;}
+    .btn-action{padding:4px 8px;font-size:10px;}
+    .modal-box{width:95%;max-width:95%;}
+}
 </style>
 </head>
 <body>
@@ -97,60 +325,80 @@ html,body{height:100%;font-family:'Segoe UI',system-ui,-apple-system,sans-serif;
 <aside class="sidebar">
     <div class="sidebar-brand">
         <div class="brand-icon">M</div>
-        <span>Admin Panel</span>
+        <span>AdminPanel</span>
     </div>
     <nav class="sidebar-nav">
         <a href="{% url 'admin_dashboard' %}" class="nav-item">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
-                <polyline points="9 22 9 12 15 12 15 22"/>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="3" width="7" height="7"/>
+                <rect x="14" y="3" width="7" height="7"/>
+                <rect x="14" y="14" width="7" height="7"/>
+                <rect x="3" y="14" width="7" height="7"/>
             </svg>
-            Dashboard
+            <span>Dashboard</span>
         </a>
-        <div class="nav-section">Cheque Management</div>
+        <div class="nav-section">Cheques</div>
         <a href="{% url 'cheque_list' %}" class="nav-item">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
-                <polyline points="14 2 14 8 20 8"/>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M13 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V9z"/>
+                <polyline points="13 2 13 9 20 9"/>
             </svg>
-            New Cheques
+            <span>New Cheques</span>
         </a>
         <a href="{% url 'cheque_deposited_list' %}" class="nav-item">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                <polyline points="20 6 9 17 4 12"/>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M22 11.08V12a10 10 0 11-5.93-9.14"/>
+                <polyline points="22 4 12 14.01 9 11.01"/>
             </svg>
-            Deposited
+            <span>Deposited</span>
         </a>
         <a href="{% url 'cheque_rejected_list' %}" class="nav-item active">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <circle cx="12" cy="12" r="10"/>
                 <line x1="15" y1="9" x2="9" y2="15"/>
                 <line x1="9" y1="9" x2="15" y2="15"/>
             </svg>
-            Rejected
+            <span>Rejected</span>
         </a>
-        <div class="nav-section">System</div>
-        <a href="{% url "reports_page" %}" class="nav-item">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                <line x1="18" y1="20" x2="18" y2="10"/>
-                <line x1="12" y1="20" x2="12" y2="4"/>
-                <line x1="6" y1="20" x2="6" y2="14"/>
+        <div class="nav-section">Expenses</div>
+        <a href="{% url 'khaja_list' %}" class="nav-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M18 8h1a4 4 0 010 8h-1"/><path d="M2 8h16v9a4 4 0 01-4 4H6a4 4 0 01-4-4V8z"/>
+                <line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/>
             </svg>
-            Reports
+            <span>Khaja</span>
+        </a>
+        <div class="nav-section">Analytics</div>
+        <a href="{% url 'reports_page' %}" class="nav-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21.21 15.89A10 10 0 118 2.83"/>
+                <path d="M22 12A10 10 0 0012 2v10z"/>
+            </svg>
+            <span>Reports</span>
+        </a>
+         <a href="{% url 'email_deposited_cheques' %}" class="nav-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                <polyline points="22,6 12,13 2,6"/>
+            </svg>
+            <span>Email Cheques</span>
         </a>
         <a href="{% url 'logout' %}" class="nav-item">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/>
                 <polyline points="16 17 21 12 16 7"/>
                 <line x1="21" y1="12" x2="9" y2="12"/>
             </svg>
-            Logout
+            <span>Logout</span>
         </a>
     </nav>
     <div class="sidebar-footer">
         <div class="user-badge">
             <div class="avatar">{{ request.user.first_name.0 }}{{ request.user.last_name.0 }}</div>
-            <span class="uname">{{ request.user.first_name }} {{ request.user.last_name }}</span>
+            <div class="user-info">
+                <span class="uname">{{ request.user.first_name }} {{ request.user.last_name }}</span>
+                <span class="urole">Administrator</span>
+            </div>
         </div>
     </div>
 </aside>
@@ -158,19 +406,35 @@ html,body{height:100%;font-family:'Segoe UI',system-ui,-apple-system,sans-serif;
 <!-- ═══════════════ MAIN CONTENT ═══════════════ -->
 <main class="main-content">
 
+    <!-- Header -->
     <div class="content-header">
-        <h1>Cheque Management — Rejected</h1>
+        <div class="header-left">
+            <h1>Cheque Management</h1>
+            <div class="header-breadcrumb">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"/>
+                    <line x1="15" y1="9" x2="9" y2="15"/>
+                    <line x1="9" y1="9" x2="15" y2="15"/>
+                </svg>
+                <span>Rejected Cheques</span>
+            </div>
+        </div>
     </div>
 
     <!-- Status Tabs -->
     <div class="status-tabs">
-        <a href="{% url 'cheque_list' %}" class="status-tab">New</a>
-        <a href="{% url 'cheque_deposited_list' %}" class="status-tab">Deposited</a>
-        <a href="{% url 'cheque_rejected_list' %}" class="status-tab active">
+        <a href="{% url 'cheque_list' %}" class="status-tab tab-new">
+            New <span class="count">0</span>
+        </a>
+        <a href="{% url 'cheque_deposited_list' %}" class="status-tab tab-deposited">
+            Deposited <span class="count">0</span>
+        </a>
+        <a href="{% url 'cheque_rejected_list' %}" class="status-tab tab-rejected active">
             Rejected <span class="count">{{ total_count }}</span>
         </a>
     </div>
 
+    <!-- Body -->
     <div class="content-body">
         <div class="table-card">
             <div class="table-wrapper">
@@ -178,10 +442,10 @@ html,body{height:100%;font-family:'Segoe UI',system-ui,-apple-system,sans-serif;
                     <thead>
                         <tr>
                             <th>SN</th>
-                            <th>Company Name</th>
+                            <th>Company</th>
                             <th>Cheque No</th>
                             <th>Amount</th>
-                            <th>Cheque Date</th>
+                            <th>Date</th>
                             <th>Remarks</th>
                             <th>Status</th>
                             <th>Actions</th>
@@ -191,28 +455,49 @@ html,body{height:100%;font-family:'Segoe UI',system-ui,-apple-system,sans-serif;
                         {% for cheque in page_obj %}
                         <tr>
                             <td class="col-sn">{{ forloop.counter|add:start_index }}</td>
-                            <td>{{ cheque.company_name }}</td>
-                            <td>{{ cheque.cheque_no }}</td>
-                            <td class="col-amount">{{ cheque.amount|floatformat:2 }}</td>
-                            <td class="col-date">{{ cheque.cheque_date|date:"Y-m-d" }}</td>
-                            <td>{{ cheque.remarks|default:"-" }}</td>
                             <td>
-                                <span class="status-badge status-rejected">{{ cheque.status }}</span>
+                                <div class="company-cell">
+                                    <div class="company-avatar">{{ cheque.company_name|slice:":2"|upper }}</div>
+                                    <span class="company-name">{{ cheque.company_name }}</span>
+                                </div>
+                            </td>
+                            <td><span class="cheque-no">{{ cheque.cheque_no }}</span></td>
+                            <td class="col-amount">₹{{ cheque.amount|floatformat:2 }}</td>
+                            <td class="col-date">{{ cheque.cheque_date|date:"M d, Y" }}</td>
+                            <td class="col-remarks" title="{{ cheque.remarks|default_if_none:'' }}">{{ cheque.remarks|default:"-" }}</td>
+                            <td class="col-status">
+                                <span class="status-badge status-rejected">Rejected</span>
                             </td>
                             <td class="col-actions">
-                                <button class="btn-action revert-btn"
-                                    data-id="{{ cheque.id }}">Revert to New</button>
+                                <div class="action-group">
+                                    <button class="btn-action revert-btn" data-id="{{ cheque.id }}">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <polyline points="1 4 1 10 7 10"/>
+                                            <path d="M3.51 15a9 9 0 102.13-9.36L1 10"/>
+                                        </svg>
+                                        Revert
+                                    </button>
+                                </div>
                             </td>
                         </tr>
                         {% empty %}
                         <tr>
-                            <td colspan="8" class="empty-cell">No rejected cheques found.</td>
+                            <td colspan="8" class="empty-cell">
+                                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#d1d5db" stroke-width="1" style="margin-bottom:12px;">
+                                    <circle cx="12" cy="12" r="10"/>
+                                    <line x1="15" y1="9" x2="9" y2="15"/>
+                                    <line x1="9" y1="9" x2="15" y2="15"/>
+                                </svg>
+                                <div style="font-weight:500;color:#64748b;margin-bottom:4px;">No rejected cheques</div>
+                                <div style="font-size:12px;">All cheques are either new or deposited</div>
+                            </td>
                         </tr>
                         {% endfor %}
                     </tbody>
                 </table>
             </div>
 
+            <!-- Table Footer -->
             <div class="table-footer">
                 <div class="table-info">
                     {% if page_obj.paginator.count > 0 %}
@@ -224,11 +509,19 @@ html,body{height:100%;font-family:'Segoe UI',system-ui,-apple-system,sans-serif;
                 {% if page_obj.has_other_pages %}
                 <div class="pagination">
                     {% if page_obj.has_previous %}
-                        <a href="?page=1" class="page-link">&laquo;</a>
-                        <a href="?page={{ page_obj.previous_page_number }}" class="page-link">&lsaquo;</a>
+                        <a href="?page=1" class="page-link">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="11 17 6 12 11 7"/><polyline points="18 17 13 12 18 7"/></svg>
+                        </a>
+                        <a href="?page={{ page_obj.previous_page_number }}" class="page-link">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+                        </a>
                     {% else %}
-                        <span class="page-link disabled">&laquo;</span>
-                        <span class="page-link disabled">&lsaquo;</span>
+                        <span class="page-link disabled">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="11 17 6 12 11 7"/><polyline points="18 17 13 12 18 7"/></svg>
+                        </span>
+                        <span class="page-link disabled">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+                        </span>
                     {% endif %}
 
                     {% for num in page_range %}
@@ -240,11 +533,19 @@ html,body{height:100%;font-family:'Segoe UI',system-ui,-apple-system,sans-serif;
                     {% endfor %}
 
                     {% if page_obj.has_next %}
-                        <a href="?page={{ page_obj.next_page_number }}" class="page-link">&rsaquo;</a>
-                        <a href="?page={{ page_obj.paginator.num_pages }}" class="page-link">&raquo;</a>
+                        <a href="?page={{ page_obj.next_page_number }}" class="page-link">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+                        </a>
+                        <a href="?page={{ page_obj.paginator.num_pages }}" class="page-link">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="13 17 18 12 13 7"/><polyline points="6 17 11 12 6 7"/></svg>
+                        </a>
                     {% else %}
-                        <span class="page-link disabled">&rsaquo;</span>
-                        <span class="page-link disabled">&raquo;</span>
+                        <span class="page-link disabled">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+                        </span>
+                        <span class="page-link disabled">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="13 17 18 12 13 7"/><polyline points="6 17 11 12 6 7"/></svg>
+                        </span>
                     {% endif %}
                 </div>
                 {% endif %}
@@ -257,10 +558,17 @@ html,body{height:100%;font-family:'Segoe UI',system-ui,-apple-system,sans-serif;
 <div class="modal-backdrop" id="revertBackdrop">
     <div class="modal-box">
         <div class="modal-box-header">
-            <h3>Confirm Revert</h3>
+            <h3>Revert to New</h3>
         </div>
-        <div class="modal-box-body">
-            <p style="font-size:14px;color:#374151;">Are you sure you want to revert this cheque back to "New" status?</p>
+        <div class="modal-box-body text-center">
+            <div class="modal-icon icon-revert">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="1 4 1 10 7 10"/>
+                    <path d="M3.51 15a9 9 0 102.13-9.36L1 10"/>
+                </svg>
+            </div>
+            <p class="modal-message">Revert this cheque back to "New" status?</p>
+            <p class="modal-submessage">The cheque will appear in the New Cheques list.</p>
         </div>
         <div class="modal-box-footer">
             <button class="btn-modal btn-modal-cancel" id="btnCancelRevert">Cancel</button>
@@ -275,19 +583,20 @@ html,body{height:100%;font-family:'Segoe UI',system-ui,-apple-system,sans-serif;
 <!-- ═══════════════ SUCCESS MODAL ═══════════════ -->
 <div class="modal-backdrop" id="successBackdrop">
     <div class="modal-box">
-        <div class="modal-box-body">
-            <div class="success-icon">
+        <div class="modal-box-body text-center" style="padding:36px 24px;">
+            <div class="modal-icon icon-success">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <polyline points="20 6 9 17 4 12"/>
                 </svg>
             </div>
-            <p class="success-message" id="successMessage">Operation successful!</p>
-            <button class="btn-modal-ok" id="btnOk">OK</button>
+            <p class="modal-message" id="successMessage">Operation successful!</p>
+            <button class="btn-modal-ok" id="btnOk">Continue</button>
         </div>
     </div>
 </div>
 
 <script>
+/* ═══════════════ DOM ELEMENTS ═══════════════ */
 const tableBody       = document.getElementById('tableBody');
 const revertBackdrop  = document.getElementById('revertBackdrop');
 const btnCancelRevert = document.getElementById('btnCancelRevert');
@@ -301,27 +610,62 @@ const btnOk           = document.getElementById('btnOk');
 const csrftoken = '{{ csrf_token }}';
 let revertTargetId = null;
 
-function showRevertModal(id) {
-    revertTargetId = id;
-    revertBackdrop.classList.add('active');
-}
-function hideRevertModal() {
-    revertBackdrop.classList.remove('active');
-    revertTargetId = null;
-}
-function showSuccess(msg) {
-    successMessage.textContent = msg;
-    successBackdrop.classList.add('active');
-}
-function hideSuccess() {
-    successBackdrop.classList.remove('active');
-    window.location.reload();
-}
-function setRevertLoading(on) {
-    if (on) { revertSpinner.classList.add('active'); revertText.textContent = 'Reverting…'; btnConfirmRevert.disabled = true; }
-    else    { revertSpinner.classList.remove('active'); revertText.textContent = 'Revert to New'; btnConfirmRevert.disabled = false; }
+/* ═══════════════ SMOOTH MODAL FUNCTIONS ═══════════════ */
+function openModal(backdrop) {
+    backdrop.classList.add('active');
+    backdrop.classList.remove('closing');
 }
 
+function closeModal(backdrop, callback) {
+    backdrop.classList.add('closing');
+    setTimeout(() => {
+        backdrop.classList.remove('active');
+        backdrop.classList.remove('closing');
+        if (callback) callback();
+    }, 300);
+}
+
+/* ═══════════════ REVERT MODAL ═══════════════ */
+function showRevertModal(id) {
+    revertTargetId = id;
+    openModal(revertBackdrop);
+}
+
+function hideRevertModal(callback) {
+    closeModal(revertBackdrop, () => {
+        revertTargetId = null;
+        if (callback) callback();
+    });
+}
+
+/* ═══════════════ SUCCESS MODAL ═══════════════ */
+function showSuccess(msg) {
+    successMessage.textContent = msg;
+    openModal(successBackdrop);
+}
+
+function hideSuccess() {
+    closeModal(successBackdrop, () => {
+        window.location.reload();
+    });
+}
+
+/* ═══════════════ SPINNER HELPER ═══════════════ */
+function setRevertLoading(on) {
+    if (on) { 
+        revertSpinner.classList.add('active'); 
+        revertText.textContent = 'Reverting…'; 
+        btnConfirmRevert.disabled = true; 
+    } else { 
+        revertSpinner.classList.remove('active'); 
+        revertText.textContent = 'Revert to New'; 
+        btnConfirmRevert.disabled = false; 
+    }
+}
+
+/* ═══════════════ EVENT LISTENERS ═══════════════ */
+
+// Table row actions
 tableBody.addEventListener('click', (e) => {
     const revertBtn = e.target.closest('.revert-btn');
     if (revertBtn) {
@@ -329,8 +673,11 @@ tableBody.addEventListener('click', (e) => {
     }
 });
 
-btnCancelRevert.addEventListener('click', hideRevertModal);
-btnOk.addEventListener('click', hideSuccess);
+// Revert modal
+btnCancelRevert.addEventListener('click', () => hideRevertModal());
+revertBackdrop.addEventListener('click', (e) => {
+    if (e.target === revertBackdrop) hideRevertModal();
+});
 
 btnConfirmRevert.addEventListener('click', async () => {
     if (!revertTargetId) return;
@@ -344,19 +691,32 @@ btnConfirmRevert.addEventListener('click', async () => {
         });
         const data = await res.json();
         setRevertLoading(false);
-        hideRevertModal();
 
-        if (data.success) { showSuccess(data.message); }
-        else              { alert(data.message || 'Revert failed.'); }
+        if (data.success) { 
+            hideRevertModal(() => showSuccess(data.message)); 
+        } else { 
+            hideRevertModal(() => alert(data.message || 'Revert failed.')); 
+        }
     } catch {
         setRevertLoading(false);
         alert('Something went wrong.');
     }
 });
 
+// Success modal
+btnOk.addEventListener('click', hideSuccess);
+successBackdrop.addEventListener('click', (e) => {
+    if (e.target === successBackdrop) hideSuccess();
+});
+
+// Keyboard shortcuts
 document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && revertBackdrop.classList.contains('active')) {
-        hideRevertModal();
+    if (e.key === 'Escape') {
+        if (revertBackdrop.classList.contains('active')) {
+            hideRevertModal();
+        } else if (successBackdrop.classList.contains('active')) {
+            hideSuccess();
+        }
     }
 });
 </script>
